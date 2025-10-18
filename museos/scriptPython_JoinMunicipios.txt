@@ -1,0 +1,93 @@
+import knime.scripting.io as knio
+import pandas as pd
+import numpy as np
+
+# Leer las tablas de entrada
+visitas_con_etiquetas = knio.input_tables[0].to_pandas()  # Salida del nodo anterior con etiquetas
+municipios = knio.input_tables[1].to_pandas()  # Tabla de municipios
+
+# Convertir las claves a formato compatible
+# En museos: '001', '020', etc. En municipios: 1, 2, 3, etc.
+resultado = visitas_con_etiquetas.copy()
+
+# Preparar la tabla de municipios - convertir claves a string con padding
+municipios_preparados = municipios.copy()
+municipios_preparados['CVE_ENT_STR'] = municipios_preparados['CVE_ENT'].astype(str).str.zfill(2)
+municipios_preparados['CVE_MUN_STR'] = municipios_preparados['CVE_MUN'].astype(str).str.zfill(3)
+
+# Preparar las claves de visitas para el merge
+resultado['ENT_RESID_STR'] = resultado['ENT_RESID'].astype(str).str.zfill(2)
+resultado['MUN_RESID_STR'] = resultado['MUN_RESID'].astype(str).str.zfill(3)
+
+# Hacer el merge/join
+resultado = resultado.merge(
+    municipios_preparados[['CVE_ENT_STR', 'CVE_MUN_STR', 'NOMBRE_MUN']],
+    left_on=['ENT_RESID_STR', 'MUN_RESID_STR'],
+    right_on=['CVE_ENT_STR', 'CVE_MUN_STR'],
+    how='left'
+)
+
+# Renombrar y limpiar columnas
+resultado = resultado.rename(columns={'NOMBRE_MUN': 'ETIQ_MUN_RESID'})
+
+# Eliminar columnas temporales que ya no necesitamos
+columnas_a_eliminar = ['ENT_RESID_STR', 'MUN_RESID_STR', 'CVE_ENT_STR', 'CVE_MUN_STR']
+resultado = resultado.drop(columns=[col for col in columnas_a_eliminar if col in resultado.columns])
+
+# Verificar resultados
+print("=== RESUMEN DE ETIQUETAS DE MUNICIPIOS ===")
+mun_etiquetados = resultado['ETIQ_MUN_RESID'].notna().sum()
+total_registros = len(resultado)
+print(f"Municipios etiquetados: {mun_etiquetados}/{total_registros} ({mun_etiquetados/total_registros*100:.1f}%)")
+
+# Mostrar algunos ejemplos para debugging
+print("\n=== EJEMPLOS DE DATOS ===")
+print("Primeros 5 registros con sus claves:")
+muestra = resultado[['ENT_RESID', 'MUN_RESID', 'ETIQ_MUN_RESID']].head(5)
+for idx, row in muestra.iterrows():
+    print(f"  ENT: {row['ENT_RESID']}, MUN: {row['MUN_RESID']} -> {row['ETIQ_MUN_RESID']}")
+
+# Mostrar combinaciones problemáticas
+sin_etiqueta = resultado[resultado['ETIQ_MUN_RESID'].isna()]
+if len(sin_etiqueta) > 0:
+    print(f"\nRegistros sin etiqueta de municipio: {len(sin_etiqueta)}")
+    combinaciones_unicas = sin_etiqueta[['ENT_RESID', 'MUN_RESID']].drop_duplicates().head(5)
+    print("Primeras 5 combinaciones ENT_RESID-MUN_RESID sin match:")
+    for _, row in combinaciones_unicas.iterrows():
+        print(f"  ENT_RESID: {row['ENT_RESID']}, MUN_RESID: {row['MUN_RESID']}")
+
+print(f"\nTotal de registros finales: {len(resultado)}")
+print("==========================================")
+
+# Crear variable TIEMPO_TOTAL (en minutos) a partir de DUR_VIS_H y DUR_VIS_M
+def calcular_tiempo_total(horas, minutos):
+    # Si alguna columna es NaN o vacía, retornar NaN
+    if pd.isna(horas) or pd.isna(minutos):
+        return np.nan
+    # Si horas o minutos son mayores a 90 (no especificado), retornar 99
+    elif horas > 90 or minutos > 90:
+        return 99
+    else:
+        # Calcular tiempo total en minutos
+        return horas * 60 + minutos
+
+# Aplicar la función
+resultado['TIEMPO_TOTAL'] = resultado.apply(
+    lambda row: calcular_tiempo_total(row['DUR_VIS_H'], row['DUR_VIS_M']), 
+    axis=1
+)
+
+# Verificar resultados
+print("=== RESUMEN DE TIEMPO_TOTAL ===")
+print("Valores únicos en TIEMPO_TOTAL:", sorted(resultado['TIEMPO_TOTAL'].dropna().unique()))
+print("Distribución:")
+print(resultado['TIEMPO_TOTAL'].value_counts(dropna=False).head(10))
+
+
+# MANEJO DE NULOS Y STRING VACIÓS
+# Convertir celdas vacías y strings con solo espacios a NaN
+resultado = resultado.replace(r'^\s*$', np.nan, regex=True)
+
+
+# Salida con todos los datos incluyendo las etiquetas de municipios
+knio.output_tables[0] = knio.Table.from_pandas(resultado)

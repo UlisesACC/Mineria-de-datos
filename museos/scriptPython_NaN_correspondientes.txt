@@ -1,0 +1,19 @@
+import knime.scripting.io as knio
+import pandas as pd
+import numpy as np
+
+# Cargar datos de entrada
+df = knio.input_tables[0].to_pandas()
+
+# Excluir columnas SEXO y MES_ENTREV
+cols = [c for c in df.columns if c not in ["SEXO", "MES_ENTREV", "ENT_REGIS", "ENT_RESID"]]
+# excluimos ENT_RESID porque el max es 33 y corresponde a extranjeros
+
+# Reemplazar valores máximos por NaN en las demás columnas (TODAS)
+#Previamente se verificó que los máximos correspondían a "No especificado"
+for col in cols:
+    max_val = df[col].max()
+    df[col] = df[col].replace(max_val, np.nan)
+
+# Salida
+knio.output_tables[0] = knio.Table.from_pandas(df)

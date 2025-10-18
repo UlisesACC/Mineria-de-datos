@@ -1,0 +1,143 @@
+import knime.scripting.io as knio
+import pandas as pd
+import numpy as np
+
+# Cargar datos de entrada
+df = knio.input_tables[0].to_pandas()
+
+# Definir columnas numéricas (convertir a float64)
+columnas_numericas = ["EDAD", "DUR_VIS_H", "DUR_VIS_M", "EVAL_GRAL", "TAM_GRUPO", "NIV_APREND"]
+
+# Las demás columnas serán categóricas (object)
+columnas_categoricas = [col for col in df.columns if col not in columnas_numericas]
+
+# PREPROCESAMIENTO: Manejar <NA> específicamente
+for col in df.columns:
+    if df[col].dtype == 'object':
+        # Convertir <NA> a cadena vacía
+        df[col] = df[col].astype(str).replace('<NA>', '')
+        # También otros patrones
+        missing_patterns = ['nan', 'NaN', 'None', 'NULL', 'null', '?', 'N/A', 'na', 'Missing']
+        for pattern in missing_patterns:
+            df[col] = df[col].replace(pattern, '')
+
+# Lista para almacenar el reporte
+reporte = []
+
+# Procesar columnas NUMÉRICAS (convertir a float64)
+for col in columnas_numericas:
+    if col in df.columns:
+        # Registrar estado ANTES de los cambios
+        tipo_anterior = str(df[col].dtype)
+        nan_antes = df[col].isna().sum()
+        
+        # Contar missings (valores como string vacío, "Missing", "?", etc.)
+        missing_antes = 0
+        if df[col].dtype == 'object':
+            missing_antes = ((df[col].astype(str) == '') | 
+                           (df[col].astype(str) == 'Missing') |
+                           (df[col].astype(str) == '?') |
+                           (df[col].astype(str) == 'NULL') |
+                           (df[col].astype(str) == 'nan')).sum()
+        
+        # CONVERTIR A FLOAT64 - esto automáticamente convierte missings a NaN
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # Registrar estado DESPUÉS de los cambios
+        tipo_actual = str(df[col].dtype)
+        nan_despues = df[col].isna().sum()
+        missing_despues = 0  # En float64 no existen missings, solo NaNs
+        
+        hubo_cambio = (tipo_anterior != tipo_actual) or (nan_antes != nan_despues) or (missing_antes != missing_despues)
+        
+        reporte.append({
+            'Columna': col,
+            'Tipo anterior': tipo_anterior,
+            'Tipo actual': tipo_actual,
+            '¿Hubo cambio?': hubo_cambio,
+            'NaNs anterior': nan_antes,
+            'NaNs actual': nan_despues,
+            'Missings anterior': missing_antes,
+            'Missings actual': missing_despues
+        })
+            
+# Procesar columnas CATEGÓRICAS (convertir a object)
+for col in columnas_categoricas:
+    if col in df.columns:
+        # Registrar estado ANTES de los cambios
+        tipo_anterior = str(df[col].dtype)
+        
+        # Contar TODOS los tipos de valores missing ANTES
+        nan_antes = df[col].isna().sum()
+        
+        # Contar missings como strings (cadenas vacías y representaciones comunes de missing)
+        if df[col].dtype == 'object':
+            missing_antes = ((df[col].astype(str) == '') | 
+                           (df[col].astype(str).str.strip() == '') |
+                           (df[col].astype(str) == 'Missing') |
+                           (df[col].astype(str) == '?') |
+                           (df[col].astype(str) == 'NULL') |
+                           (df[col].astype(str) == 'null') |
+                           (df[col].astype(str) == 'nan') |
+                           (df[col].astype(str) == 'NaN') |
+                           (df[col].astype(str) == 'None') |
+                           (df[col].astype(str) == 'N/A') |
+                           (df[col].astype(str) == 'na')).sum()
+        else:
+            # Para columnas no object, solo contar NaNs
+            missing_antes = nan_antes
+        
+        # CONVERTIR A OBJECT y estandarizar missings
+        df[col] = df[col].astype(str)
+        
+        # Lista de valores que consideramos como missing
+        missing_values = ['', 'nan', 'NaN', 'None', 'NULL', 'null', '?', 'N/A', 'na']
+        
+        # Reemplazar TODOS los valores missing por 'Missing'
+        for missing_val in missing_values:
+            df[col] = df[col].replace(missing_val, 'Missing')
+        
+        # También manejar cadenas que solo contienen espacios en blanco
+        df[col] = df[col].apply(lambda x: 'Missing' if str(x).strip() == '' else x)
+        
+        # Registrar estado DESPUÉS de los cambios
+        tipo_actual = 'object'
+        nan_despues = 0  # En object no debería haber NaNs
+        
+        # Contar missings después (solo strings 'Missing')
+        missing_despues = (df[col] == 'Missing').sum()
+        
+        hubo_cambio = (tipo_anterior != tipo_actual) or (missing_antes != missing_despues)
+        
+        reporte.append({
+            'Columna': col,
+            'Tipo anterior': tipo_anterior,
+            'Tipo actual': tipo_actual,
+            '¿Hubo cambio?': hubo_cambio,
+            'NaNs anterior': nan_antes,
+            'NaNs actual': nan_despues,
+            'Missings anterior': missing_antes,
+            'Missings actual': missing_despues
+        })
+
+# Crear DataFrame del reporte
+reporte_df = pd.DataFrame(reporte)
+
+# Ordenar el reporte por nombre de columna para mejor visualización
+reporte_df = reporte_df.sort_values('Columna').reset_index(drop=True)
+
+# Verificación final de tipos de datos
+print("=== VERIFICACIÓN FINAL DE TIPOS ===")
+for col in df.columns:
+    print(f"{col}: {df[col].dtype}")
+
+print(f"\n=== RESUMEN ===")
+print(f"Columnas numéricas (float64): {len(columnas_numericas)}")
+print(f"Columnas categóricas (object): {len(columnas_categoricas)}")
+print(f"Total de columnas procesadas: {len(df.columns)}")
+
+print(df)
+
+# === SALIDAS ===
+knio.output_tables[0] = knio.Table.from_pandas(df)          # Datos procesados y limpios
+knio.output_tables[1] = knio.Table.from_pandas(reporte_df)  # Reporte de cambios
