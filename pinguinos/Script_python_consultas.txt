@@ -1,0 +1,60 @@
+import pandas as pd
+import knime.scripting.io as knio
+
+# Leer la tabla de entrada
+df = knio.input_tables[0].to_pandas()
+
+# Consulta 1: Promedio de masa corporal por especie 
+consulta1 = (
+    df.groupby("species", dropna=False)["body_mass_g"]
+      .mean()
+      .reset_index()
+      .rename(columns={"body_mass_g": "avg_body_mass_g"})
+)
+consulta1["query"] = "Promedio masa corporal por especie"
+consulta1["island"] = None
+consulta1["count_penguins"] = None
+consulta1["sex"] = None
+consulta1["avg_flipper_length_mm"] = None
+
+# Consulta 2: Número de pingüinos por isla 
+consulta2 = (
+    df.groupby("island", dropna=False)["species"]
+      .count()
+      .reset_index()
+      .rename(columns={"species": "count_penguins"})
+)
+consulta2["query"] = "Número de pingüinos por isla"
+consulta2["species"] = None
+consulta2["avg_body_mass_g"] = None
+consulta2["sex"] = None
+consulta2["avg_flipper_length_mm"] = None
+
+# Consulta 3: Longitud promedio de aleta por sexo 
+consulta3 = (
+    df.groupby("sex", dropna=False)["flipper_length_mm"]
+      .mean()
+      .reset_index()
+      .rename(columns={"flipper_length_mm": "avg_flipper_length_mm"})
+)
+consulta3["query"] = "Promedio longitud de aleta por sexo"
+consulta3["species"] = None
+consulta3["avg_body_mass_g"] = None
+consulta3["island"] = None
+consulta3["count_penguins"] = None
+
+# Uniendi los resultados 
+columnas_finales = [
+    "species",
+    "avg_body_mass_g",
+    "query",
+    "island",
+    "count_penguins",
+    "sex",
+    "avg_flipper_length_mm"
+]
+
+output = pd.concat([consulta1, consulta2, consulta3], ignore_index=True)[columnas_finales]
+
+# Enviar resultado a KNIME 
+knio.output_tables[0] = knio.Table.from_pandas(output)
