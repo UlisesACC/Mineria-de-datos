@@ -1,0 +1,150 @@
+import knime.scripting.io as knio
+import pandas as pd
+import numpy as np
+import math
+
+# Leer las tablas de entrada
+info = knio.input_tables[0].to_pandas()      # Visitas 2024
+etiquetas = knio.input_tables[1].to_pandas() # Nueva tabla de etiquetas
+
+# ---------- FUNCIÓN DE NORMALIZACIÓN ----------
+def normalize_key(x):
+    """Devuelve una cadena limpia para usar como clave.
+       - None/NaN -> None
+       - enteros -> '1'
+       - floats con .0 -> '1'
+       - strings -> strip y quitar '.0' si existe
+    """
+    if pd.isna(x):
+        return None
+    # si ya es int
+    if isinstance(x, (int, np.integer)):
+        return str(int(x))
+    # si es float
+    if isinstance(x, (float, np.floating)):
+        if math.isclose(x, round(x)):
+            return str(int(round(x)))
+        else:
+            # Representación sin exponentes, sin ceros trailing
+            s = ('{0:.12g}'.format(x)).rstrip('0').rstrip('.')
+            return s
+    # si es string: limpiar y quitar .0 final si aplica
+    s = str(x).strip()
+    if s == '':
+        return None
+    # si es algo como '1.0' -> '1'
+    if s.endswith('.0'):
+        try:
+            return str(int(float(s)))
+        except:
+            pass
+    # quitar ceros a la izquierda (ej '01' -> '1'), pero conservar si es alfanumérico
+    if s.isdigit():
+        return str(int(s))
+    return s
+
+# ---------- NORMALIZAR EN 'etiquetas' ----------
+# Lista de pares (columna_clave_en_etiquetas, nombre_etiqueta_resultado)
+clave_map_pairs = [
+    ('CLAVE_ENT_REGIS', 'ETIQ_ENT_REGIS'),
+    ('CLAVE_ENT_RESID', 'ETIQ_ENT_RESID'),
+    ('CLAVE_SEXO', 'ETIQ_SEXO'),
+    ('CLAVE_MES_ENTREV', 'ETIQ_MES_ENTREV'),
+    ('CLAVE_ESCOLARIDA', 'ETIQ_ESCOLARIDA'),
+    ('CLAVE_OCUPACION', 'ETIQ_OCUPACION'),
+    ('CLAVE_ESTIM_FAM', 'ETIQ_ESTIM_FAM'),
+    ('CLAVE_MEDIO_TRAN', 'ETIQ_MEDIO_TRAN'),
+    ('CLAVE_TIEMPO_TRA', 'ETIQ_TIEMPO_TRA'),
+    ('CLAVE_OPIN_EXPO', 'ETIQ_OPIN_EXPOS'),
+    ('CLAVE_DUR_VIS_H', 'ETIQ_DUR_VIS_H'),
+    ('CLAVE_DUR_VIS_M', 'ETIQ_DUR_VIS_M'),
+    ('CLAVE_EVAL_GRAL', 'ETIQ_EVAL_GRAL'),
+    ('CLAVE_ENT_REGIS', 'ETIQ_ENT_REGION')  # para región
+]
+
+# Crear una copia limpia de etiquetas con claves normalizadas (para evitar mutar original)
+et_clean = etiquetas.copy()
+for clave_col, _ in clave_map_pairs:
+    if clave_col in et_clean.columns:
+        et_clean[f"norm_{clave_col}"] = et_clean[clave_col].apply(normalize_key)
+    else:
+        et_clean[f"norm_{clave_col}"] = None
+
+# ---------- NORMALIZAR EN 'info' ----------
+# Columnas en info que serán mapeadas (nombres originales)
+info_cols_a_normalizar = ['ENT_REGIS', 'ENT_RESID', 'SEXO', 'MES_ENTREV', 'ESCOLARIDA',
+                          'OCUPACION', 'ESTIM_FAM', 'MEDIO_TRAN', 'TIEMPO_TRA',
+                          'OPIN_EXPOS', 'DUR_VIS_H', 'DUR_VIS_M', 'EVAL_GRAL']
+
+for col in info_cols_a_normalizar:
+    if col in info.columns:
+        info[f"norm_{col}"] = info[col].apply(normalize_key)
+    else:
+        info[f"norm_{col}"] = None
+
+# ---------- CREAR MAPEOS USANDO CLAVES NORMALIZADAS ----------
+def crear_mapeo_por_norm(et_df, clave_col, etiqueta_col):
+    norm_col = f"norm_{clave_col}"
+    if norm_col in et_df.columns and etiqueta_col in et_df.columns:
+        df_limpio = et_df.dropna(subset=[norm_col]).drop_duplicates(subset=[norm_col], keep='first')
+        return dict(zip(df_limpio[norm_col], df_limpio[etiqueta_col]))
+    return {}
+
+mapeos = {
+    'ENT_REGIS': crear_mapeo_por_norm(et_clean, 'CLAVE_ENT_REGIS', 'ETIQ_ENT_REGIS'),
+    'ENT_RESID': crear_mapeo_por_norm(et_clean, 'CLAVE_ENT_RESID', 'ETIQ_ENT_RESID'),
+    'SEXO': crear_mapeo_por_norm(et_clean, 'CLAVE_SEXO', 'ETIQ_SEXO'),
+    'MES_ENTREV': crear_mapeo_por_norm(et_clean, 'CLAVE_MES_ENTREV', 'ETIQ_MES_ENTREV'),
+    'ESCOLARIDA': crear_mapeo_por_norm(et_clean, 'CLAVE_ESCOLARIDA', 'ETIQ_ESCOLARIDA'),
+    'OCUPACION': crear_mapeo_por_norm(et_clean, 'CLAVE_OCUPACION', 'ETIQ_OCUPACION'),
+    'ESTIM_FAM': crear_mapeo_por_norm(et_clean, 'CLAVE_ESTIM_FAM', 'ETIQ_ESTIM_FAM'),
+    'MEDIO_TRAN': crear_mapeo_por_norm(et_clean, 'CLAVE_MEDIO_TRAN', 'ETIQ_MEDIO_TRAN'),
+    'TIEMPO_TRA': crear_mapeo_por_norm(et_clean, 'CLAVE_TIEMPO_TRA', 'ETIQ_TIEMPO_TRA'),
+    'OPIN_EXPOS': crear_mapeo_por_norm(et_clean, 'CLAVE_OPIN_EXPO', 'ETIQ_OPIN_EXPOS'),
+    'DUR_VIS_H': crear_mapeo_por_norm(et_clean, 'CLAVE_DUR_VIS_H', 'ETIQ_DUR_VIS_H'),
+    'DUR_VIS_M': crear_mapeo_por_norm(et_clean, 'CLAVE_DUR_VIS_M', 'ETIQ_DUR_VIS_M'),
+    'EVAL_GRAL': crear_mapeo_por_norm(et_clean, 'CLAVE_EVAL_GRAL', 'ETIQ_EVAL_GRAL'),
+}
+
+# Mapeo para REGION (usa CLAVE_ENT_REGIS normalizada -> ETIQ_ENT_REGION)
+mapeo_region = crear_mapeo_por_norm(et_clean, 'CLAVE_ENT_REGIS', 'ETIQ_ENT_REGION')
+
+# ---------- APLICAR MAPEOS AL DATASET PRINCIPAL (usando columnas normalizadas) ----------
+resultado = info.copy()
+
+for columna_original, mapeo in mapeos.items():
+    norm_col = f"norm_{columna_original}"
+    nombre_etiqueta = f"ETIQ_{columna_original}"
+    if norm_col in resultado.columns:
+        resultado[nombre_etiqueta] = resultado[norm_col].map(mapeo)
+    else:
+        resultado[nombre_etiqueta] = None
+        print(f"Advertencia: no se encontró columna normalizada {norm_col} en info")
+
+# Región basada en ENT_REGIS (usar norm_ENT_REGIS)
+if 'norm_ENT_REGIS' in resultado.columns:
+    resultado['ETIQ_REGION'] = resultado['norm_ENT_REGIS'].map(mapeo_region)
+else:
+    resultado['ETIQ_REGION'] = None
+    print("Advertencia: norm_ENT_REGIS no encontrada para crear ETIQ_REGION")
+
+# ---------- INFORME RÁPIDO DE COINCIDENCIAS (opcional, útil para debug) ----------
+def reporte_unmapped(res_df, original_col, etiqueta_col):
+    total = len(res_df)
+    mapped = res_df[etiqueta_col].notna().sum()
+    print(f"{etiqueta_col}: {mapped}/{total} valores mapeados (faltaron {total - mapped})")
+
+print("=== RESUMEN DE ETIQUETAS APLICADAS ===")
+for col in ['ENT_REGIS', 'ENT_RESID', 'SEXO', 'MES_ENTREV', 'ESCOLARIDA']:
+    reporte_unmapped(resultado, col, f"ETIQ_{col}")
+print("REGIÓN:")
+reporte_unmapped(resultado, 'ENT_REGIS', 'ETIQ_REGION')
+print(f"\nTotal de registros: {len(resultado)}")
+print("=====================================")
+
+# Salida final (elimina columnas norm_ si no las quieres en salida; sino conservarlas)
+# Por ejemplo, quitar columnas temporales norm_:
+cols_a_eliminar = [c for c in resultado.columns if c.startswith('norm_')]
+resultado = resultado.drop(columns=cols_a_eliminar)
+
+knio.output_tables[0] = knio.Table.from_pandas(resultado)

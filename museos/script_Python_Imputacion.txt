@@ -1,0 +1,192 @@
+import knime.scripting.io as knio
+import pandas as pd
+import numpy as np
+
+# Cargar datos de entrada
+df = knio.input_tables[0].to_pandas()
+
+# Definir columnas numéricas (convertir a float64)
+columnas_numericas = ["EDAD", "DUR_VIS_H", "DUR_VIS_M", "EVAL_GRAL", "TAM_GRUPO", "NIV_APREND"]
+# Convertir columnas a tipo numérico (float64), forzando errores a NaN
+for col in columnas_numericas:
+    df[col] = pd.to_numeric(df[col], errors='coerce').astype('float64')
+
+
+print("Iniciando proceso de imputación...")
+print(f"Filas iniciales: {len(df)}")
+
+# ============================================================
+# VARIABLES COMPLETAS - NO REQUIEREN TRATAMIENTO
+# ============================================================
+# ENT_REGIS, ENT_RESID, MES_ENTREV, SEXO
+
+# ============================================================
+# IMPUTACIÓN DE VARIABLES NUMÉRICAS (float64)
+# ============================================================
+
+# EDAD: promedio redondeado a número entero
+if 'EDAD' in df.columns:
+    edad_promedio = round(df['EDAD'].mean())
+    df['EDAD'].fillna(edad_promedio, inplace=True)
+    print(f"EDAD imputada con: {edad_promedio}")
+
+# DUR_VIS_H: promedio redondeado (excluyendo 98)
+if 'DUR_VIS_H' in df.columns:
+    dur_h_sin_98 = df[df['DUR_VIS_H'] != 98]['DUR_VIS_H']
+    dur_h_promedio = round(dur_h_sin_98.mean()) if not dur_h_sin_98.empty else round(df['DUR_VIS_H'].mean())
+    df['DUR_VIS_H'].fillna(dur_h_promedio, inplace=True)
+    print(f"DUR_VIS_H imputada con: {dur_h_promedio}")
+
+# DUR_VIS_M: promedio por ENT_REGIS
+if 'DUR_VIS_M' in df.columns:
+    df['DUR_VIS_M'] = df.groupby('ENT_REGIS')['DUR_VIS_M'].transform(
+        lambda x: x.fillna(round(x.mean()))
+    )
+    print("DUR_VIS_M imputada por ENT_REGIS")
+
+# EVAL_GRAL: promedio redondeado
+if 'EVAL_GRAL' in df.columns:
+    eval_promedio = round(df['EVAL_GRAL'].mean())
+    df['EVAL_GRAL'].fillna(eval_promedio, inplace=True)
+    print(f"EVAL_GRAL imputada con: {eval_promedio}")
+
+# TAM_GRUPO: promedio redondeado
+if 'TAM_GRUPO' in df.columns:
+    tam_promedio = round(df['TAM_GRUPO'].mean())
+    df['TAM_GRUPO'].fillna(tam_promedio, inplace=True)
+    print(f"TAM_GRUPO imputado con: {tam_promedio}")
+
+# NIV_APREND: promedio redondeado
+if 'NIV_APREND' in df.columns:
+    niv_promedio = round(df['NIV_APREND'].mean())
+    df['NIV_APREND'].fillna(niv_promedio, inplace=True)
+    print(f"NIV_APREND imputado con: {niv_promedio}")
+
+# ============================================================
+# IMPUTACIÓN DE VARIABLES CATEGÓRICAS (object)
+# ============================================================
+
+# DIA_ENTREV: imputar la moda
+if 'DIA_ENTREV' in df.columns:
+    dia_moda = df['DIA_ENTREV'].mode()[0] if not df['DIA_ENTREV'].mode().empty else 'Missing'
+    df['DIA_ENTREV'].fillna(dia_moda, inplace=True)
+    print(f"DIA_ENTREV imputado con moda: {dia_moda}")
+
+# ESCOLARIDA: imputar la moda
+if 'ESCOLARIDA' in df.columns:
+    escolarida_moda = df['ESCOLARIDA'].mode()[0] if not df['ESCOLARIDA'].mode().empty else 'Missing'
+    df['ESCOLARIDA'].fillna(escolarida_moda, inplace=True)
+    print(f"ESCOLARIDA imputada con moda: {escolarida_moda}")
+
+# ESTIM_FAM: imputar la moda
+if 'ESTIM_FAM' in df.columns:
+    estim_moda = df['ESTIM_FAM'].mode()[0] if not df['ESTIM_FAM'].mode().empty else 'Missing'
+    df['ESTIM_FAM'].fillna(estim_moda, inplace=True)
+    print(f"ESTIM_FAM imputado con moda: {estim_moda}")
+
+# MEDIO_TRAN: imputar la moda
+if 'MEDIO_TRAN' in df.columns:
+    medio_moda = df['MEDIO_TRAN'].mode()[0] if not df['MEDIO_TRAN'].mode().empty else 'Missing'
+    df['MEDIO_TRAN'].fillna(medio_moda, inplace=True)
+    print(f"MEDIO_TRAN imputado con moda: {medio_moda}")
+
+# MUN_RESID: eliminar filas
+if 'MUN_RESID' in df.columns:
+    filas_antes = len(df)
+    df = df[df['MUN_RESID'] != 'Missing']
+    filas_eliminadas = filas_antes - len(df)
+    print(f"MUN_RESID: eliminadas {filas_eliminadas} filas")
+
+# M_NOVIS_1: imputar según REPETIR_VI
+if 'M_NOVIS_1' in df.columns and 'REPETIR_VI' in df.columns:
+    # Para REPETIR_VI = 1, asignar "3"
+    mask_repetir_1 = (df['REPETIR_VI'] == 1) & (df['M_NOVIS_1'] == 'Missing')
+    df.loc[mask_repetir_1, 'M_NOVIS_1'] = '3'
+    
+    # Para REPETIR_VI = 2, imputar moda
+    mask_repetir_2 = (df['REPETIR_VI'] == 2) & (df['M_NOVIS_1'] == 'Missing')
+    if mask_repetir_2.any():
+        novis_moda = df[df['M_NOVIS_1'] != 'Missing']['M_NOVIS_1'].mode()
+        if not novis_moda.empty:
+            df.loc[mask_repetir_2, 'M_NOVIS_1'] = novis_moda[0]
+    
+    print("M_NOVIS_1 imputado según REPETIR_VI")
+
+# OCUPACION: imputación estratificada por ENT_RESID y EDAD
+if 'OCUPACION' in df.columns:
+    df['OCUPACION'] = df.groupby(['ENT_RESID', 'EDAD'])['OCUPACION'].transform(
+        lambda x: x.fillna(x.mode()[0] if not x.mode().empty else df['OCUPACION'].mode()[0])
+    )
+    print("OCUPACION imputada estratificadamente")
+
+# OPIN_EXPOS: eliminar registros missing
+if 'OPIN_EXPOS' in df.columns:
+    filas_antes = len(df)
+    df = df[df['OPIN_EXPOS'] != 'Missing']
+    filas_eliminadas = filas_antes - len(df)
+    print(f"OPIN_EXPOS: eliminadas {filas_eliminadas} filas")
+
+# PLAN_VISIT: imputar la moda
+if 'PLAN_VISIT' in df.columns:
+    plan_moda = df['PLAN_VISIT'].mode()[0] if not df['PLAN_VISIT'].mode().empty else 'Missing'
+    df['PLAN_VISIT'].fillna(plan_moda, inplace=True)
+    print(f"PLAN_VISIT imputado con moda: {plan_moda}")
+
+# PRIM_VISIT: imputar la moda
+if 'PRIM_VISIT' in df.columns:
+    prim_moda = df['PRIM_VISIT'].mode()[0] if not df['PRIM_VISIT'].mode().empty else 'Missing'
+    df['PRIM_VISIT'].fillna(prim_moda, inplace=True)
+    print(f"PRIM_VISIT imputado con moda: {prim_moda}")
+
+# RECOMIE_VI: imputar la moda
+if 'RECOMIE_VI' in df.columns:
+    recomie_moda = df['RECOMIE_VI'].mode()[0] if not df['RECOMIE_VI'].mode().empty else 'Missing'
+    df['RECOMIE_VI'].fillna(recomie_moda, inplace=True)
+    print(f"RECOMIE_VI imputado con moda: {recomie_moda}")
+
+# REPETIR_VI: imputar la moda
+if 'REPETIR_VI' in df.columns:
+    repetir_moda = df['REPETIR_VI'].mode()[0] if not df['REPETIR_VI'].mode().empty else 'Missing'
+    df['REPETIR_VI'].fillna(repetir_moda, inplace=True)
+    print(f"REPETIR_VI imputado con moda: {repetir_moda}")
+
+# TIEMPO_TRA: imputar la moda
+if 'TIEMPO_TRA' in df.columns:
+    tiempo_moda = df['TIEMPO_TRA'].mode()[0] if not df['TIEMPO_TRA'].mode().empty else 'Missing'
+    df['TIEMPO_TRA'].fillna(tiempo_moda, inplace=True)
+    print(f"TIEMPO_TRA imputado con moda: {tiempo_moda}")
+
+# TIPO_ENTRA: eliminar registros missing
+if 'TIPO_ENTRA' in df.columns:
+    filas_antes = len(df)
+    df = df[df['TIPO_ENTRA'] != 'Missing']
+    filas_eliminadas = filas_antes - len(df)
+    print(f"TIPO_ENTRA: eliminadas {filas_eliminadas} filas")
+
+# VIS_OTROS: imputar la moda
+if 'VIS_OTROS' in df.columns:
+    vis_moda = df['VIS_OTROS'].mode()[0] if not df['VIS_OTROS'].mode().empty else 'Missing'
+    df['VIS_OTROS'].fillna(vis_moda, inplace=True)
+    print(f"VIS_OTROS imputado con moda: {vis_moda}")
+
+# ============================================================
+# FINALIZACIÓN
+# ============================================================
+df.reset_index(drop=True, inplace=True)
+
+print(f"\n=== RESUMEN FINAL ===")
+print(f"Filas finales: {len(df)}")
+print(f"Valores faltantes restantes:")
+
+for col in df.columns:
+    if df[col].dtype == 'object':
+        missing_count = (df[col] == 'Missing').sum()
+    else:
+        missing_count = df[col].isna().sum()
+    
+    if missing_count > 0:
+        print(f"  {col}: {missing_count} faltantes")
+
+# SALIDA: Devolver tabla procesada a KNIME
+knio.output_tables[0] = knio.Table.from_pandas(df)
+print("Proceso de imputación completado exitosamente!")
