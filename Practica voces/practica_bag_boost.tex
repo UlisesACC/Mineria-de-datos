@@ -1,0 +1,108 @@
+
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{float}
+
+\begin{document}
+
+\begin{center}
+{\LARGE INSTITUTO POLITÉCNICO NACIONAL}\\
+{\Large ESCUELA SUPERIOR DE CÓMPUTO}\\
+{\Large \textbf{PRACTICA DE CLASIFICACIÓN (Bagging, Boosting)}}\\
+\end{center}
+
+\vspace{1cm}
+
+\noindent\textbf{Grupo:} \_\_\_\_\_\_\_\_\\
+\textbf{No. Equipo:} \_\_\_\_\_\_\_\_\\
+\textbf{Nombres:}
+Ulises Abdiel Cabello Cardenas
+
+\vspace{1cm}
+
+\section*{Descripción del conjunto de datos}
+Reconocimiento de Género por Voz. Identificar una voz como masculina o femenina.
+
+\noindent\textbf{No. Licencia:} CC BY-NC-SA 4.0\\
+\textbf{Disponible en:} \url{https://www.kaggle.com/datasets/primaryobjects/voicegender/data}
+
+\section*{Diccionario de datos}
+El conjunto de datos cuenta con 22 atributos, los cuales se describen en la siguiente tabla.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\hline
+\textbf{Variable} & \textbf{Tipo} & \textbf{Significado} \\
+\hline
+meanfreq & numérico & Frecuencia media (kHz) \\
+sd & numérico & Desviación estándar de la frecuencia \\
+median & numérico & Frecuencia mediana (kHz) \\
+Q25 & numérico & Primer cuantil (kHz) \\
+Q75 & numérico & Tercer cuantil (kHz) \\
+IQR & numérico & Rango intercuartílico (kHz) \\
+skew & numérico & Asimetría del espectro \\
+kurt & numérico & Curtosis del espectro \\
+sp.ent & numérico & Entropía espectral \\
+sfm & numérico & Planitud espectral \\
+mode & numérico & Frecuencia de la moda \\
+centroid & numérico & Centroide de frecuencia \\
+peakf & numérico & Frecuencia pico (mayor energía) \\
+meanfun & numérico & Promedio de frecuencia fundamental \\
+minfun & numérico & Frecuencia fundamental mínima \\
+maxfun & numérico & Frecuencia fundamental máxima \\
+meandom & numérico & Promedio de frecuencia dominante \\
+mindom & numérico & Frecuencia dominante mínima \\
+maxdom & numérico & Frecuencia dominante máxima \\
+dfrange & numérico & Rango de frecuencia dominante \\
+modindx & numérico & Índice de modulación \\
+label & categórico & Género: masculino o femenino \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\section*{Consideraciones encontradas en el conjunto de datos}
+Describir las consideraciones que encuentre en el conjunto de datos.
+
+\section*{Objetivo de la práctica}
+\textbf{Objetivo:} Crear un modelo de clasificación para identificar las características distintivas en los tipos de voz de mujeres y de hombres. Aplique métodos de Random Forest (Bagging) y Boosting.
+
+Agregue la descripción de las variables dependientes e independientes. Explicando el nombre del algoritmo y sus características.
+
+\section*{Tratamiento de datos}
+Describa cada una de las variables del conjunto de datos, analice el problema que presentan y aplique la técnica de tratamiento de datos según corresponda. Por ejemplo: tipo, valores faltantes, tratamiento necesario a realizar. Describa el proceso desarrollado.
+
+\section*{Creación del o los modelos de clasificación}
+Genere dos modelos de clasificación: Random Forest (Bagging) y Boosting.
+
+\section*{Creación de métricas}
+Analice la matriz de confusión para identificar y explicar los resultados encontrados.
+
+Desarrolle las siguientes métricas y su significado:
+\begin{itemize}
+\item Matriz de confusión
+\item Sensibilidad
+\item Precisión
+\item Tasa de error
+\item Exactitud
+\item Especificidad
+\item Explicación de VP, FP, VN, FN
+\item Curva ROC: significado e interpretación
+\item Importancia de atributos dentro del modelo
+\end{itemize}
+
+\section*{Análisis de datos}
+Describa el significado de las métricas generadas a partir del modelo de clasificación.
+
+Identifique dos errores de elementos clasificados erróneamente y describa la razón.
+
+\section*{Conclusiones}
+Agregue las conclusiones de la investigación desarrollada.
+
+\section*{Referencias bibliográficas}
+
+\end{document}
