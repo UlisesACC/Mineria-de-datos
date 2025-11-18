@@ -4,7 +4,10 @@
 \usepackage{longtable}
 \usepackage{array}
 \usepackage{hyperref}
+\usepackage{bookmark}
 \usepackage{float}
+\usepackage{graphicx}
+\usepackage{amsmath}
 
 \begin{document}
 
@@ -67,6 +70,59 @@ label & categórico & Género: masculino o femenino \\
 
 \section*{Consideraciones encontradas en el conjunto de datos}
 Describir las consideraciones que encuentre en el conjunto de datos.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{consdata.jpg}
+\caption{Consideraciones del conjunto de datos}
+\end{figure}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{consdata2.jpg}
+\caption{Consideraciones del conjunto de datos}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Tipos de datos:}  
+    Todos los atributos predictivos del conjunto de datos son de tipo \textit{numérico (float)}, mientras que la variable objetivo \texttt{label} es \textit{categórica} con dos clases: \texttt{male} y \texttt{female}. Esto facilita el uso de modelos basados en árboles, pues no requieren codificación adicional ni normalización estricta.
+
+    \item \textbf{Valores faltantes:}  
+    Ninguna variable contiene valores faltantes:  
+    $
+    \text{Missing Values} = 0
+    $
+    Por lo tanto, no se necesitó realizar imputación ni eliminación de registros.
+
+    \item \textbf{Número de valores únicos:}  
+    Varias variables presentan un número muy alto de valores únicos (hasta 3166), lo que indica un comportamiento continuo.  
+    Sin embargo, se observaron variables con menor variabilidad, tales como:
+    \begin{itemize}
+        \item \texttt{maxfun}: 123 valores únicos
+        \item \texttt{mindom}: 77 valores únicos
+        \item \texttt{minfun}: 913 valores únicos
+        \item \texttt{dfrange}: 1091 valores únicos
+    \end{itemize}
+    Estas diferencias sugieren que algunas características espectrales poseen menor dispersión que otras.
+
+    \item \textbf{Presencia de outliers:}  
+    Aunque no existen valores faltantes, se identifica la presencia de valores extremos en variables como:
+    \texttt{skew}, \texttt{kurt}, \texttt{maxdom} y \texttt{dfrange}.  
+    Debido a que los modelos de tipo árbol (Random Forest y Boosting) son robustos ante outliers, se decidió no realizar eliminación ni transformación de estos valores.
+
+    \item \textbf{Balance de clases:}  
+    El conjunto de datos está perfectamente balanceado con:
+    $
+    1584\ \text{voces masculinas} \quad \text{y} \quad 1584\ \text{voces femeninas}.
+    $  
+    Esto evita la necesidad de aplicar técnicas de balanceo como \textit{oversampling} o \textit{undersampling}.
+
+    \item \textbf{Distribución y variabilidad de los atributos:}  
+    Atributos como \texttt{meanfreq}, \texttt{median}, \texttt{meanfun} y \texttt{centroid} presentan alta variabilidad, lo que corresponde con mediciones continuas del espectro de voz.  
+    En contraste, variables como \texttt{mindom} y \texttt{maxdom} muestran menos valores únicos debido a la naturaleza discretizada de la frecuencia dominante.
+\end{itemize}
+
+El conjunto de datos presenta buena calidad, no requiere un tratamiento adicional significativo y es adecuado para técnicas de clasificación como Random Forest y Boosting, pero para evitar problemas se realizara una normalizacion en los datos.
 
 \section*{Objetivo de la práctica}
 \textbf{Objetivo:} Crear un modelo de clasificación para identificar las características distintivas en los tipos de voz de mujeres y de hombres. Aplique métodos de Random Forest (Bagging) y Boosting.
