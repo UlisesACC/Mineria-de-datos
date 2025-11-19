@@ -3,6 +3,8 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from matplotlib.patches import Circle
 
 # =======================
 # Datos
@@ -23,6 +25,46 @@ def print_matrix(title, M, labels):
 
 
 # =======================
+# Función para graficar clusters en 2D (ahora con círculos que encierran cada cluster)
+# =======================
+def plot_clusters_2d(data, clusters, method, iteration):
+    cmap = cm.get_cmap("tab10")
+    plt.figure(figsize=(5, 4))
+    ax = plt.gca()
+
+    for i, cl in enumerate(clusters):
+        pts = data.loc[cl]
+        color = cmap(i % 10)
+
+        # Dibujar puntos del cluster
+        sc = ax.scatter(pts["X"], pts["Y"], color=color, s=80, label=f"Cluster {i+1}", zorder=3, edgecolor='k')
+
+        # Anotar puntos
+        for idx, row in pts.iterrows():
+            ax.text(row["X"] + 0.005, row["Y"] + 0.005, idx, fontsize=9, zorder=4)
+
+        # Si hay al menos un punto, calcular centro y radio para el círculo que encierra el cluster
+        centroid = pts[["X", "Y"]].mean().values
+        dists = np.sqrt(((pts[["X", "Y"]].values - centroid) ** 2).sum(axis=1))
+        if len(dists) > 0:
+            radius = dists.max() + 0.03  # padding
+        else:
+            radius = 0.03
+
+        # Añadir círculo (semi-transparente) alrededor del cluster
+        circle = Circle(centroid, radius, edgecolor=color, facecolor=color, alpha=0.15, lw=2, zorder=1)
+        ax.add_patch(circle)
+
+    ax.set_title(f"{method.upper()} - Iteración {iteration}")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.legend(loc="best", fontsize='small')
+    ax.set_aspect('equal', adjustable='box')  # mantener escala igual para círculos
+    plt.tight_layout()
+    plt.show()
+
+
+# =======================
 # Función general para iteraciones (muestra clusters por iteración)
 # =======================
 def hierarchical_iterations(data, method="single"):
@@ -34,6 +76,7 @@ def hierarchical_iterations(data, method="single"):
 
     print_matrix("Matriz inicial", dist, labels)
     print("\nClusters iniciales:", clusters)
+    plot_clusters_2d(data, clusters, method, 0)
 
     iteration = 1
 
@@ -92,6 +135,9 @@ def hierarchical_iterations(data, method="single"):
 
         print_matrix("Matriz actualizada", dist, labels)
         print("Clusters actuales:", clusters)
+
+        # Graficar clusters actuales (usando las coordenadas originales)
+        plot_clusters_2d(data, clusters, method, iteration)
 
         iteration += 1
         if len(dist) == 1:
