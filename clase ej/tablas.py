@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.hierarchy import linkage, dendrogram
+import matplotlib.pyplot as plt
 
 # =======================
 # Datos
@@ -21,14 +23,17 @@ def print_matrix(title, M, labels):
 
 
 # =======================
-# Función general para iteraciones
+# Función general para iteraciones (muestra clusters por iteración)
 # =======================
 def hierarchical_iterations(data, method="single"):
     # Matriz de distancias inicial
     dist = squareform(pdist(data.values, metric="euclidean"))
     labels = list(data.index)
+    # Inicializar clusters como listas de elementos originales
+    clusters = [[lbl] for lbl in labels]
 
     print_matrix("Matriz inicial", dist, labels)
+    print("\nClusters iniciales:", clusters)
 
     iteration = 1
 
@@ -39,6 +44,9 @@ def hierarchical_iterations(data, method="single"):
 
         print(f"\n=== Iteración {iteration} ===")
         print(f"Se fusionan: {labels[i]} y {labels[j]}")
+
+        # Nuevo cluster (composición de elementos originales)
+        new_cluster = clusters[i] + clusters[j]
 
         # Crear nuevo label del cluster
         new_label = f"({labels[i]}-{labels[j]})"
@@ -54,10 +62,8 @@ def hierarchical_iterations(data, method="single"):
                 elif method == "average":
                     new_row.append((dist[i, k] + dist[j, k]) / 2)
 
-        # Construir nueva matriz
+        # Construir nueva matriz sin i ni j
         new_dist = []
-
-        # Filas que no contienen i ni j
         for k in range(len(dist)):
             if k != i and k != j:
                 row = []
@@ -66,21 +72,26 @@ def hierarchical_iterations(data, method="single"):
                         row.append(dist[k, m])
                 new_dist.append(row)
 
-        # Agregar nueva fila/columna
-        for r in new_dist:
-            r.append(new_row[new_dist.index(r)])
+        # Agregar nueva fila/columna (columna a cada fila existente)
+        for idx, r in enumerate(new_dist):
+            r.append(new_row[idx])
 
         new_row.append(0.0)
         new_dist.append(new_row)
 
-        # Actualizar etiquetas y matriz
+        # Actualizar etiquetas y clusters
         old_labels = labels.copy()
         labels = [old_labels[k] for k in range(len(old_labels)) if k not in (i, j)]
         labels.append(new_label)
 
+        old_clusters = clusters.copy()
+        clusters = [old_clusters[k] for k in range(len(old_clusters)) if k not in (i, j)]
+        clusters.append(new_cluster)
+
         dist = np.array(new_dist)
 
         print_matrix("Matriz actualizada", dist, labels)
+        print("Clusters actuales:", clusters)
 
         iteration += 1
         if len(dist) == 1:
@@ -88,14 +99,21 @@ def hierarchical_iterations(data, method="single"):
 
 
 # ===============================
-# Ejecutar los 3 métodos
+# Ejecutar los 3 métodos y dendrogramas
 # ===============================
 
-print("\n\n********* ENLACE SIMPLE *********")
-hierarchical_iterations(puntos, method="single")
+methods = [("single", "ENLACE SIMPLE"), ("complete", "ENLACE COMPLETO"), ("average", "ENLACE PROMEDIO")]
 
-print("\n\n********* ENLACE COMPLETO *********")
-hierarchical_iterations(puntos, method="complete")
+for method, title in methods:
+    print(f"\n\n********* {title} *********")
+    hierarchical_iterations(puntos, method=method)
 
-print("\n\n********* ENLACE PROMEDIO *********")
-hierarchical_iterations(puntos, method="average")
+    # Dendograma usando scipy (para visualizar la jerarquía completa)
+    Z = linkage(puntos.values, method=method, metric='euclidean')
+    plt.figure(figsize=(8, 4))
+    dendrogram(Z, labels=puntos.index.tolist(), leaf_rotation=0)
+    plt.title(f"Dendrograma ({title})")
+    plt.xlabel("Elementos")
+    plt.ylabel("Distancia")
+    plt.tight_layout()
+    plt.show()
