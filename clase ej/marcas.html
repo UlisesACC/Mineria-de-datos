@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Reglas de Asociación - Algoritmo Apriori</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            border: none;
+            padding: 0;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 50px;
+        }
+        
+        .container {
+            background-color: white;
+        }
+        
+        .nav-index {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .nav-index h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        h1 {
+            color: white;
+            border: none;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin: 50px 0 25px 0;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            position: relative;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 100px;
+            height: 3px;
+            background: #764ba2;
+        }
+        
+        h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin: 30px 0 20px 0;
+            padding-left: 15px;
+            border-left: 4px solid #764ba2;
+        }
+        
+        h4 {
+            color: #667eea;
+            font-size: 1.2em;
+            margin: 20px 0 15px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        th {
+            background-color: transparent;
+            color: white;
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background-color: #f8f9ff;
+            transition: background-color 0.2s ease;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #fafbff;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #e8f4f8 !important;
+        }
+        
+        .interactive-section {
+            margin: 30px 0;
+        }
+        
+        .filter-container {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .filter-container h3 {
+            color: white;
+            margin-bottom: 20px;
+            border-left: none;
+            padding-left: 0;
+        }
+        
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .checkbox-group label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .btn-clear {
+            background: white;
+            color: #f5576c;
+            border: 2px solid white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+        
+        .btn-clear:hover {
+            background: transparent;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .result-box {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            display: none;
+        }
+        
+        .result-box.show {
+            display: block;
+        }
+        
+        .result-box h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-left: none;
+            padding-left: 0;
+        }
+        
+        .result-box p {
+            margin: 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .frequency-result {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #c0392b;
+        }
+        
+        .highlight-row {
+            background-color: #fff3cd !important;
+            border-left: 5px solid #ffc107;
+            font-weight: 600;
+        }
+        
+        .highlight-row:hover {
+            background-color: #ffe69c !important;
+        }
+        
+        #interactiveTable td[data-brand] {
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .check {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .cross {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        ul li {
+            padding: 5px 0;
+            padding-left: 20px;
+        }
+        
+        ul li:before {
+            content: "▪ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .nav-index ul {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1>Análisis de Reglas de Asociación</h1>
+            <p>Algoritmo Apriori - Minería de Datos</p>
+        </div>
+        <div class="content">
+        <div class="highlight">
+            <h2>Instrucciones</h2>
+            <p>Considere el siguiente conjunto de elementos:</p>
+            <p><strong>I = {Adidas, Jordan, New Balance, Nike, Puma, Reebok, Under Armour}</strong></p>
+            <p><strong>Nota:</strong> Los nombres de los productos deben estar ordenados ascendentemente para la identificación de patrones frecuentes (join).</p>
+            <p>Generar las reglas de asociación usando el <strong>ALGORITMO APRIORI</strong> y la evaluación de estas considerando los siguientes criterios:</p>
+            <ul>
+                <li><strong>Fi = 2</strong></li>
+            <li><strong>min.sup = 2</strong></li>
+            <li><strong>min.conf = 75%</strong></li>
+        </ul>
+
+        <div class="nav-index">
+            <h2 id="indice">Índice</h2>
+            <ul>
+                <li><a href="#datos-transacciones">Datos de Transacciones</a></li>
+                <li><a href="#matriz-binaria">Matriz Binaria de Transacciones</a></li>
+                <li><a href="#algoritmo-apriori">Algoritmo Apriori</a></li>
+                <li><a href="#resumen-itemsets">Resumen de Itemsets Frecuentes</a></li>
+                <li><a href="#reglas">Generación de Reglas de Asociación</a></li>
+                <li><a href="#resumen-final">Resumen Final</a></li>
+                <li><a href="#tabla-interactiva">Tabla Interactiva de Frecuencias</a></li>
+            </ul>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h2 id="datos-transacciones">Datos de Transacciones</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Productos</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>{Adidas, Jordan, Reebok, Under Armour}</td></tr>
+                <tr><td>2</td><td>{Nike, Puma, Reebok, Under Armour}</td></tr>
+                <tr><td>3</td><td>{Adidas, Jordan, New Balance, Nike}</td></tr>
+                <tr><td>4</td><td>{Adidas, Jordan, Nike, Puma, Under Armour}</td></tr>
+                <tr><td>5</td><td>{Jordan, Nike, Reebok, Under Armour}</td></tr>
+                <tr><td>6</td><td>{New Balance, Puma}</td></tr>
+                <tr><td>7</td><td>{Reebok, Under Armour}</td></tr>
+                <tr><td>8</td><td>{New Balance, Puma, Reebok, Under Armour}</td></tr>
+                <tr><td>9</td><td>{Jordan, New Balance, Nike, Puma, Reebok, Under Armour}</td></tr>
+                <tr><td>10</td><td>{New Balance, Nike, Puma}</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="matriz-binaria">Matriz Binaria de Transacciones</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Transacción</th>
+                    <th>Adidas</th>
+                    <th>Jordan</th>
+                    <th>Reebok</th>
+                    <th>Under Armour</th>
+                    <th>Nike</th>
+                    <th>Puma</th>
+                    <th>New Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+                <tr><td>2</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+                <tr><td>3</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                <tr><td>4</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+                <tr><td>5</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+                <tr><td>6</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+                <tr><td>7</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+                <tr><td>8</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+                <tr><td>9</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+                <tr><td>10</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+                <tr class="total-row">
+                    <td>Suma</td><td>3</td><td>5</td><td>6</td><td>7</td><td>7</td><td>6</td><td>5</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="algoritmo-apriori">Algoritmo Apriori</h2>
+        <div class="highlight">
+            <p><strong>Parámetros:</strong></p>
+            <ul>
+                <li>min.sup = 2</li>
+                <li>min.conf = 75%</li>
+                <li>Fi = 2 (soporte mínimo de 2 transacciones)</li>
+            </ul>
+        </div>
+
+        <h3>Primera iteración (L1 - Itemsets de 1 elemento)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Frecuencia</th>
+                    <th>¿Cumple min.sup?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Adidas</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>Jordan</td><td>5</td><td class="check">✓</td></tr>
+                <tr><td>New Balance</td><td>5</td><td class="check">✓</td></tr>
+                <tr><td>Nike</td><td>7</td><td class="check">✓</td></tr>
+                <tr><td>Puma</td><td>6</td><td class="check">✓</td></tr>
+                <tr><td>Reebok</td><td>6</td><td class="check">✓</td></tr>
+                <tr><td>Under Armour</td><td>7</td><td class="check">✓</td></tr>
+            </tbody>
+        </table>
+        <p><strong>Todos los productos cumplen con el soporte mínimo de 2</strong>, por lo que pasan a la siguiente iteración.</p>
+
+        <h3>Segunda iteración (C2 - Candidatos de 2 elementos)</h3>
+        <p>Generamos todas las combinaciones de 2 elementos en orden alfabético:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Itemset</th>
+                    <th>Transacciones</th>
+                    <th>Frecuencia</th>
+                    <th>¿Cumple min.sup?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas, Jordan}</td><td>1, 3, 4</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Adidas, New Balance}</td><td>3</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Nike}</td><td>3, 4</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Adidas, Puma}</td><td>4</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Reebok}</td><td>1</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Under Armour}</td><td>1, 4</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, New Balance}</td><td>3, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Nike}</td><td>3, 4, 5, 9</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Puma}</td><td>4, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Reebok}</td><td>1, 5, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Under Armour}</td><td>1, 4, 5, 9</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Nike}</td><td>3, 9, 10</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Puma}</td><td>6, 8, 9, 10</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Reebok}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Under Armour}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma}</td><td>2, 4, 9, 10</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Reebok}</td><td>2, 5, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Under Armour}</td><td>2, 4, 5, 9</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{Puma, Reebok}</td><td>2, 8, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Puma, Under Armour}</td><td>2, 4, 8, 9</td><td>4</td><td class="check">✓</td></tr>
+                <tr><td>{Reebok, Under Armour}</td><td>1, 2, 5, 7, 8, 9</td><td>6</td><td class="check">✓</td></tr>
+            </tbody>
+        </table>
+
+        <h4>L2 - Itemsets frecuentes de 2 elementos</h4>
+        <p>Los siguientes 18 itemsets cumplen con min.sup = 2:</p>
+        <table>
+            <thead>
+                <tr><th>Itemset</th><th>Frecuencia</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas, Jordan}</td><td>3</td></tr>
+                <tr><td>{Adidas, Nike}</td><td>2</td></tr>
+                <tr><td>{Adidas, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Jordan, New Balance}</td><td>2</td></tr>
+                <tr><td>{Jordan, Nike}</td><td>4</td></tr>
+                <tr><td>{Jordan, Puma}</td><td>2</td></tr>
+                <tr><td>{Jordan, Reebok}</td><td>3</td></tr>
+                <tr><td>{Jordan, Under Armour}</td><td>4</td></tr>
+                <tr><td>{New Balance, Nike}</td><td>3</td></tr>
+                <tr><td>{New Balance, Puma}</td><td>4</td></tr>
+                <tr><td>{New Balance, Reebok}</td><td>2</td></tr>
+                <tr><td>{New Balance, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Nike, Puma}</td><td>4</td></tr>
+                <tr><td>{Nike, Reebok}</td><td>3</td></tr>
+                <tr><td>{Nike, Under Armour}</td><td>4</td></tr>
+                <tr><td>{Puma, Reebok}</td><td>3</td></tr>
+                <tr><td>{Puma, Under Armour}</td><td>4</td></tr>
+                <tr><td>{Reebok, Under Armour}</td><td>6</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Tercera iteración (C3 - Candidatos de 3 elementos)</h3>
+        <p>Generamos candidatos combinando pares que comparten un elemento común (join):</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Itemset</th>
+                    <th>Transacciones</th>
+                    <th>Frecuencia</th>
+                    <th>¿Cumple min.sup?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas, Jordan, Nike}</td><td>3, 4</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Adidas, Jordan, Under Armour}</td><td>1, 4</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Adidas, Nike, Under Armour}</td><td>4</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, New Balance, Nike}</td><td>3, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, New Balance, Puma}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, New Balance, Reebok}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, New Balance, Under Armour}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike, Puma}</td><td>4, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Nike, Reebok}</td><td>5, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Nike, Under Armour}</td><td>4, 5, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Puma, Reebok}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Puma, Under Armour}</td><td>4, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Reebok, Under Armour}</td><td>1, 5, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Nike, Puma}</td><td>9, 10</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Nike, Reebok}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Nike, Under Armour}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma, Reebok}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Puma, Under Armour}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Reebok, Under Armour}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma, Reebok}</td><td>2, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma, Under Armour}</td><td>2, 4, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Reebok, Under Armour}</td><td>2, 5, 9</td><td>3</td><td class="check">✓</td></tr>
+                <tr><td>{Puma, Reebok, Under Armour}</td><td>2, 8, 9</td><td>3</td><td class="check">✓</td></tr>
+            </tbody>
+        </table>
+
+        <h4>L3 - Itemsets frecuentes de 3 elementos</h4>
+        <p>Los siguientes 16 itemsets cumplen con min.sup = 2:</p>
+        <table>
+            <thead>
+                <tr><th>Itemset</th><th>Frecuencia</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas, Jordan, Nike}</td><td>2</td></tr>
+                <tr><td>{Adidas, Jordan, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Jordan, New Balance, Nike}</td><td>2</td></tr>
+                <tr><td>{Jordan, Nike, Puma}</td><td>2</td></tr>
+                <tr><td>{Jordan, Nike, Reebok}</td><td>2</td></tr>
+                <tr><td>{Jordan, Nike, Under Armour}</td><td>3</td></tr>
+                <tr><td>{Jordan, Puma, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Jordan, Reebok, Under Armour}</td><td>3</td></tr>
+                <tr><td>{New Balance, Nike, Puma}</td><td>2</td></tr>
+                <tr><td>{New Balance, Puma, Reebok}</td><td>2</td></tr>
+                <tr><td>{New Balance, Puma, Under Armour}</td><td>2</td></tr>
+                <tr><td>{New Balance, Reebok, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Nike, Puma, Reebok}</td><td>2</td></tr>
+                <tr><td>{Nike, Puma, Under Armour}</td><td>3</td></tr>
+                <tr><td>{Nike, Reebok, Under Armour}</td><td>3</td></tr>
+                <tr><td>{Puma, Reebok, Under Armour}</td><td>3</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Cuarta iteración (C4 - Candidatos de 4 elementos)</h3>
+        <p>Generamos candidatos combinando tripletas que comparten dos elementos comunes:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Itemset</th>
+                    <th>Transacciones</th>
+                    <th>Frecuencia</th>
+                    <th>¿Cumple min.sup?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas, Jordan, Nike, Under Armour}</td><td>4</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike, Puma, Under Armour}</td><td>4, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Nike, Reebok, Under Armour}</td><td>5, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Puma, Reebok, Under Armour}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Nike, Puma, Reebok}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Nike, Puma, Under Armour}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma, Reebok, Under Armour}</td><td>8, 9</td><td>2</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma, Reebok, Under Armour}</td><td>2, 9</td><td>2</td><td class="check">✓</td></tr>
+            </tbody>
+        </table>
+
+        <h4>L4 - Itemsets frecuentes de 4 elementos</h4>
+        <p>Los siguientes 4 itemsets cumplen con min.sup = 2:</p>
+        <table>
+            <thead>
+                <tr><th>Itemset</th><th>Frecuencia</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>{Jordan, Nike, Puma, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Jordan, Nike, Reebok, Under Armour}</td><td>2</td></tr>
+                <tr><td>{New Balance, Puma, Reebok, Under Armour}</td><td>2</td></tr>
+                <tr><td>{Nike, Puma, Reebok, Under Armour}</td><td>2</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Quinta iteración (C5 - Candidatos de 5 elementos)</h3>
+        <p>Generamos candidatos combinando cuartetos que comparten tres elementos comunes:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Itemset</th>
+                    <th>Transacciones</th>
+                    <th>Frecuencia</th>
+                    <th>¿Cumple min.sup?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Jordan, Nike, Puma, Reebok, Under Armour}</td><td>9</td><td>1</td><td class="cross">✗</td></tr>
+            </tbody>
+        </table>
+
+        <h4>L5 - Itemsets frecuentes de 5 elementos</h4>
+        <p><strong>No hay itemsets de 5 elementos que cumplan con min.sup = 2.</strong></p>
+        <p>El algoritmo termina aquí ya que no se generaron más itemsets frecuentes.</p>
+
+        <hr>
+
+        <h2 id="resumen-itemsets">Resumen de Itemsets Frecuentes</h2>
+        <div class="summary-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nivel</th>
+                        <th>Cantidad de Itemsets Frecuentes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>L1 (1 elemento)</td><td>7</td></tr>
+                    <tr><td>L2 (2 elementos)</td><td>18</td></tr>
+                    <tr><td>L3 (3 elementos)</td><td>16</td></tr>
+                    <tr><td>L4 (4 elementos)</td><td>4</td></tr>
+                    <tr><td>L5 (5 elementos)</td><td>0</td></tr>
+                    <tr class="total-row">
+                        <td>Total</td><td>45</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2 id="reglas">Generación de Reglas de Asociación</h2>
+        <div class="highlight">
+            <p><strong>Criterio:</strong> min.conf = 75%</p>
+            <p>Para cada itemset frecuente de 2 o más elementos, generamos todas las reglas posibles y calculamos su confianza.</p>
+            <p><strong>Fórmula:</strong> Confianza(X ⇒ Y) = soporte(X ∪ Y) / soporte(X) × 100%</p>
+        </div>
+
+        <h3>Reglas de Itemsets de 2 elementos (L2)</h3>
+        <p>Tabla completa de reglas candidatas:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Regla</th>
+                    <th>Soporte(X∪Y)</th>
+                    <th>Soporte(X)</th>
+                    <th>Confianza</th>
+                    <th>¿Cumple 75%?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas} ⇒ {Jordan}</td><td>3</td><td>3</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan} ⇒ {Adidas}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas} ⇒ {Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Adidas}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas} ⇒ {Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Adidas}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {New Balance}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Jordan}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Nike}</td><td>4</td><td>5</td><td>80.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike} ⇒ {Jordan}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Puma}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Jordan}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Reebok}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Jordan}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Under Armour}</td><td>4</td><td>5</td><td>80.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {Jordan}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Nike}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {New Balance}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Puma}</td><td>4</td><td>5</td><td>80.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance}</td><td>4</td><td>6</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Reebok}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {New Balance}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {New Balance}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Puma}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Nike}</td><td>4</td><td>6</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Reebok}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Nike}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Under Armour}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Nike}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Reebok}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Puma}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Under Armour}</td><td>4</td><td>6</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Puma}</td><td>4</td><td>7</td><td>57.1%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Under Armour}</td><td>6</td><td>6</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {Reebok}</td><td>6</td><td>7</td><td>85.7%</td><td class="check">✓</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Reglas Fuertes de L2 (≥75%)</h4>
+        <div class="strong-rules">
+            <ol>
+                <li><strong>{Adidas} ⇒ {Jordan}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan} ⇒ {Nike}</strong> - Confianza: 80.0%</li>
+                <li><strong>{Jordan} ⇒ {Under Armour}</strong> - Confianza: 80.0%</li>
+                <li><strong>{New Balance} ⇒ {Puma}</strong> - Confianza: 80.0%</li>
+                <li><strong>{Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Under Armour} ⇒ {Reebok}</strong> - Confianza: 85.7%</li>
+            </ol>
+        </div>
+
+        <h3>Reglas de Itemsets de 3 elementos (L3)</h3>
+        <p>Tabla completa de reglas candidatas:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Regla</th>
+                    <th>Soporte(X∪Y)</th>
+                    <th>Soporte(X)</th>
+                    <th>Confianza</th>
+                    <th>¿Cumple 75%?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Adidas} ⇒ {Jordan, Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Adidas, Jordan}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Nike} ⇒ {Jordan}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan} ⇒ {Adidas, Nike}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Jordan} ⇒ {Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike} ⇒ {Adidas}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas} ⇒ {Jordan, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Adidas, Jordan}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Under Armour} ⇒ {Jordan}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan} ⇒ {Adidas, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Adidas, Jordan} ⇒ {Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Under Armour} ⇒ {Adidas}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Nike, Puma}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Jordan, Nike}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Puma} ⇒ {Nike}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike} ⇒ {Jordan, Puma}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike} ⇒ {Puma}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {Jordan}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Nike, Under Armour}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Jordan, Nike}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Under Armour} ⇒ {Nike}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike} ⇒ {Jordan, Under Armour}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike} ⇒ {Under Armour}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Jordan}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan} ⇒ {Reebok, Under Armour}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Jordan, Under Armour}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Reebok} ⇒ {Under Armour}</td><td>3</td><td>3</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {Jordan, Reebok}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Under Armour} ⇒ {Reebok}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {Jordan}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Nike, Puma}</td><td>3</td><td>5</td><td>60.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance, Nike}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma} ⇒ {Nike}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike} ⇒ {New Balance, Puma}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Nike} ⇒ {Puma}</td><td>3</td><td>3</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {New Balance}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance} ⇒ {Puma, Reebok}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {New Balance, Puma}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Reebok} ⇒ {Puma}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance, Reebok}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma} ⇒ {Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {New Balance}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Puma, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {New Balance, Puma}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Under Armour} ⇒ {Puma}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma} ⇒ {Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {New Balance}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Puma, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Nike, Puma}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Reebok} ⇒ {Puma}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Nike, Reebok}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Puma, Under Armour}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Nike, Puma}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Puma}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Nike, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {Nike}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Reebok, Under Armour}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Nike, Under Armour}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Reebok} ⇒ {Under Armour}</td><td>3</td><td>3</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {Nike, Reebok}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Reebok}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {Nike}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Reebok, Under Armour}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Puma, Under Armour}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {Under Armour}</td><td>3</td><td>3</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {Puma, Reebok}</td><td>3</td><td>7</td><td>42.9%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {Reebok}</td><td>3</td><td>4</td><td>75.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {Puma}</td><td>3</td><td>6</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Reebok, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {New Balance, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Reebok} ⇒ {Under Armour}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Under Armour} ⇒ {New Balance, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Under Armour} ⇒ {Reebok}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {New Balance}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Reglas Fuertes de L3 (≥75%)</h4>
+        <div class="strong-rules">
+            <ol>
+                <li><strong>{Adidas, Nike} ⇒ {Jordan}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Adidas, Under Armour} ⇒ {Jordan}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, New Balance} ⇒ {Nike}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Puma} ⇒ {Nike}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Nike} ⇒ {Under Armour}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Jordan, Under Armour} ⇒ {Nike}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Nike, Under Armour} ⇒ {Jordan}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Jordan, Puma} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Under Armour} ⇒ {Reebok}</strong> - Confianza: 75.0%</li>
+                <li><strong>{New Balance, Puma} ⇒ {Nike}</strong> - Confianza: 75.0%</li>
+                <li><strong>{New Balance, Nike} ⇒ {Puma}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Nike, Puma} ⇒ {New Balance}</strong> - Confianza: 75.0%</li>
+                <li><strong>{New Balance, Reebok} ⇒ {Puma}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Under Armour} ⇒ {Puma}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Under Armour} ⇒ {Reebok}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Nike, Puma} ⇒ {Under Armour}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Nike, Under Armour} ⇒ {Puma}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Puma, Under Armour} ⇒ {Nike}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Nike, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Nike, Under Armour} ⇒ {Reebok}</strong> - Confianza: 75.0%</li>
+                <li><strong>{Puma, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Puma, Under Armour} ⇒ {Reebok}</strong> - Confianza: 75.0%</li>
+            </ol>
+        </div>
+
+        <h3>Reglas de Itemsets de 4 elementos (L4)</h3>
+        <p>Tabla completa de reglas candidatas:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Regla</th>
+                    <th>Soporte(X∪Y)</th>
+                    <th>Soporte(X)</th>
+                    <th>Confianza</th>
+                    <th>¿Cumple 75%?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{Jordan, Nike} ⇒ {Puma, Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Puma} ⇒ {Nike, Under Armour}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Jordan, Under Armour} ⇒ {Nike, Puma}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {Jordan, Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Jordan, Puma}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {Jordan, Nike}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Nike, Puma, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Jordan, Puma, Under Armour}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Jordan, Nike, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Jordan, Nike, Puma}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Nike} ⇒ {Reebok, Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Reebok} ⇒ {Nike, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan, Under Armour} ⇒ {Nike, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Reebok} ⇒ {Jordan, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Jordan, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {Jordan, Nike}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Jordan} ⇒ {Nike, Reebok, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Jordan, Reebok, Under Armour}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Jordan, Nike, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Jordan, Nike, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Nike} ⇒ {Puma, Reebok}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma} ⇒ {Nike, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Reebok} ⇒ {Nike, Puma}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {New Balance, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Reebok} ⇒ {New Balance, Puma}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {New Balance, Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Nike, Puma, Reebok}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {New Balance, Puma, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance, Nike, Reebok}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {New Balance, Nike, Puma}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Puma} ⇒ {Reebok, Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance, Reebok} ⇒ {Puma, Under Armour}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{New Balance, Under Armour} ⇒ {Puma, Reebok}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {New Balance, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {New Balance, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {New Balance, Puma}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{New Balance} ⇒ {Puma, Reebok, Under Armour}</td><td>2</td><td>5</td><td>40.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {New Balance, Reebok, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {New Balance, Puma, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {New Balance, Puma, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma} ⇒ {Reebok, Under Armour}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Reebok} ⇒ {Puma, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Under Armour} ⇒ {Puma, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok} ⇒ {Nike, Under Armour}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Under Armour} ⇒ {Nike, Reebok}</td><td>2</td><td>4</td><td>50.0%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok, Under Armour} ⇒ {Nike, Puma}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike} ⇒ {Puma, Reebok, Under Armour}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma} ⇒ {Nike, Reebok, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Reebok} ⇒ {Nike, Puma, Under Armour}</td><td>2</td><td>6</td><td>33.3%</td><td class="cross">✗</td></tr>
+                <tr><td>{Under Armour} ⇒ {Nike, Puma, Reebok}</td><td>2</td><td>7</td><td>28.6%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma, Under Armour} ⇒ {Reebok}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Nike, Puma, Reebok} ⇒ {Under Armour}</td><td>2</td><td>2</td><td>100.0%</td><td class="check">✓</td></tr>
+                <tr><td>{Nike, Reebok, Under Armour} ⇒ {Puma}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+                <tr><td>{Puma, Reebok, Under Armour} ⇒ {Nike}</td><td>2</td><td>3</td><td>66.7%</td><td class="cross">✗</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Reglas Fuertes de L4 (≥75%)</h4>
+        <div class="strong-rules">
+            <ol>
+                <li><strong>{Jordan, Nike, Puma} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Puma, Under Armour} ⇒ {Nike}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Puma} ⇒ {Nike, Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Jordan, Nike, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Puma, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Puma, Under Armour} ⇒ {Reebok}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Reebok, Under Armour} ⇒ {Puma}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Reebok} ⇒ {Puma, Under Armour}</strong> - Confianza: 100.0%</li>
+                <li><strong>{New Balance, Under Armour} ⇒ {Puma, Reebok}</strong> - Confianza: 100.0%</li>
+                <li><strong>{Nike, Puma, Reebok} ⇒ {Under Armour}</strong> - Confianza: 100.0%</li>
+            </ol>
+        </div>
+
+
+        <h2 id="resumen-final">Resumen Final de Reglas de Asociación Fuertes</h2>
+        <div class="summary-box">
+            <h3>Total de reglas fuertes (confianza ≥ 75%): 37 reglas</h3>
+            
+            <h4>Por nivel:</h4>
+            <ul>
+                <li><strong>L2:</strong> 6 reglas fuertes</li>
+                <li><strong>L3:</strong> 21 reglas fuertes</li>
+                <li><strong>L4:</strong> 10 reglas fuertes</li>
+            </ul>
+
+            <h4>Top 10 Reglas con Confianza 100%:</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Regla</th>
+                        <th>Soporte</th>
+                        <th>Confianza</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>{Adidas} ⇒ {Jordan}</td><td>3</td><td>100.0%</td></tr>
+                    <tr><td>2</td><td>{Reebok} ⇒ {Under Armour}</td><td>6</td><td>100.0%</td></tr>
+                    <tr><td>3</td><td>{Adidas, Nike} ⇒ {Jordan}</td><td>2</td><td>100.0%</td></tr>
+                    <tr><td>4</td><td>{Adidas, Under Armour} ⇒ {Jordan}</td><td>2</td><td>100.0%</td></tr>
+                    <tr><td>5</td><td>{Jordan, New Balance} ⇒ {Nike}</td><td>2</td><td>100.0%</td></tr>
+                    <tr><td>6</td><td>{Jordan, Puma} ⇒ {Nike}</td><td>2</td><td>100.0%</td></tr>
+                    <tr><td>7</td><td>{Jordan, Puma} ⇒ {Under Armour}</td><td>2</td><td>100.0%</td></tr>
+                    <tr><td>8</td><td>{Jordan, Reebok} ⇒ {Under Armour}</td><td>3</td><td>100.0%</td></tr>
+                    <tr><td>9</td><td>{Nike, Reebok} ⇒ {Under Armour}</td><td>3</td><td>100.0%</td></tr>
+                    <tr><td>10</td><td>{Puma, Reebok} ⇒ {Under Armour}</td><td>3</td><td>100.0%</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <h2 id="tabla-interactiva">Tabla Interactiva de Frecuencias</h2>
+        <div class="highlight">
+            <p><strong>Selecciona las marcas</strong> para calcular su frecuencia de aparición conjunta en las transacciones:</p>
+        </div>
+
+        <div class="interactive-section">
+            <div class="filter-container">
+                <h3>Filtrar por Marcas:</h3>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="brand-filter" value="Adidas"> Adidas</label>
+                    <label><input type="checkbox" class="brand-filter" value="Jordan"> Jordan</label>
+                    <label><input type="checkbox" class="brand-filter" value="New Balance"> New Balance</label>
+                    <label><input type="checkbox" class="brand-filter" value="Nike"> Nike</label>
+                    <label><input type="checkbox" class="brand-filter" value="Puma"> Puma</label>
+                    <label><input type="checkbox" class="brand-filter" value="Reebok"> Reebok</label>
+                    <label><input type="checkbox" class="brand-filter" value="Under Armour"> Under Armour</label>
+                </div>
+                <button id="clearFilters" class="btn-clear">Limpiar Selección</button>
+            </div>
+
+            <div class="result-box" id="resultBox">
+                <h3>Resultado del Filtro:</h3>
+                <p><strong>Marcas seleccionadas:</strong> <span id="selectedBrands"></span></p>
+                <p><strong>Frecuencia:</strong> <span id="frequency" class="frequency-result">0</span> transacciones</p>
+                <p><strong>Transacciones que contienen todas las marcas:</strong> <span id="transactionsList"></span></p>
+            </div>
+
+            <table id="interactiveTable">
+                <thead>
+                    <tr>
+                        <th>Transacción</th>
+                        <th>Adidas</th>
+                        <th>Jordan</th>
+                        <th>New Balance</th>
+                        <th>Nike</th>
+                        <th>Puma</th>
+                        <th>Reebok</th>
+                        <th>Under Armour</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-transaction="1"><td>1</td><td data-brand="Adidas">1</td><td data-brand="Jordan">1</td><td data-brand="New Balance">0</td><td data-brand="Nike">0</td><td data-brand="Puma">0</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="2"><td>2</td><td data-brand="Adidas">0</td><td data-brand="Jordan">0</td><td data-brand="New Balance">0</td><td data-brand="Nike">1</td><td data-brand="Puma">1</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="3"><td>3</td><td data-brand="Adidas">1</td><td data-brand="Jordan">1</td><td data-brand="New Balance">1</td><td data-brand="Nike">1</td><td data-brand="Puma">0</td><td data-brand="Reebok">0</td><td data-brand="Under Armour">0</td></tr>
+                    <tr data-transaction="4"><td>4</td><td data-brand="Adidas">1</td><td data-brand="Jordan">1</td><td data-brand="New Balance">0</td><td data-brand="Nike">1</td><td data-brand="Puma">1</td><td data-brand="Reebok">0</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="5"><td>5</td><td data-brand="Adidas">0</td><td data-brand="Jordan">1</td><td data-brand="New Balance">0</td><td data-brand="Nike">1</td><td data-brand="Puma">0</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="6"><td>6</td><td data-brand="Adidas">0</td><td data-brand="Jordan">0</td><td data-brand="New Balance">1</td><td data-brand="Nike">0</td><td data-brand="Puma">1</td><td data-brand="Reebok">0</td><td data-brand="Under Armour">0</td></tr>
+                    <tr data-transaction="7"><td>7</td><td data-brand="Adidas">0</td><td data-brand="Jordan">0</td><td data-brand="New Balance">0</td><td data-brand="Nike">0</td><td data-brand="Puma">0</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="8"><td>8</td><td data-brand="Adidas">0</td><td data-brand="Jordan">0</td><td data-brand="New Balance">1</td><td data-brand="Nike">0</td><td data-brand="Puma">1</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="9"><td>9</td><td data-brand="Adidas">0</td><td data-brand="Jordan">1</td><td data-brand="New Balance">1</td><td data-brand="Nike">1</td><td data-brand="Puma">1</td><td data-brand="Reebok">1</td><td data-brand="Under Armour">1</td></tr>
+                    <tr data-transaction="10"><td>10</td><td data-brand="Adidas">0</td><td data-brand="Jordan">0</td><td data-brand="New Balance">1</td><td data-brand="Nike">1</td><td data-brand="Puma">1</td><td data-brand="Reebok">0</td><td data-brand="Under Armour">0</td></tr>
+                    <tr class="total-row">
+                        <td><strong>Suma</strong></td>
+                        <td><strong>3</strong></td>
+                        <td><strong>5</strong></td>
+                        <td><strong>5</strong></td>
+                        <td><strong>6</strong></td>
+                        <td><strong>6</strong></td>
+                        <td><strong>7</strong></td>
+                        <td><strong>7</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            const transactionData = [
+                {id: 1, brands: {"Adidas": 1, "Jordan": 1, "New Balance": 0, "Nike": 0, "Puma": 0, "Reebok": 1, "Under Armour": 1}},
+                {id: 2, brands: {"Adidas": 0, "Jordan": 0, "New Balance": 0, "Nike": 1, "Puma": 1, "Reebok": 1, "Under Armour": 1}},
+                {id: 3, brands: {"Adidas": 1, "Jordan": 1, "New Balance": 1, "Nike": 1, "Puma": 0, "Reebok": 0, "Under Armour": 0}},
+                {id: 4, brands: {"Adidas": 1, "Jordan": 1, "New Balance": 0, "Nike": 1, "Puma": 1, "Reebok": 0, "Under Armour": 1}},
+                {id: 5, brands: {"Adidas": 0, "Jordan": 1, "New Balance": 0, "Nike": 1, "Puma": 0, "Reebok": 1, "Under Armour": 1}},
+                {id: 6, brands: {"Adidas": 0, "Jordan": 0, "New Balance": 1, "Nike": 0, "Puma": 1, "Reebok": 0, "Under Armour": 0}},
+                {id: 7, brands: {"Adidas": 0, "Jordan": 0, "New Balance": 0, "Nike": 0, "Puma": 0, "Reebok": 1, "Under Armour": 1}},
+                {id: 8, brands: {"Adidas": 0, "Jordan": 0, "New Balance": 1, "Nike": 0, "Puma": 1, "Reebok": 1, "Under Armour": 1}},
+                {id: 9, brands: {"Adidas": 0, "Jordan": 1, "New Balance": 1, "Nike": 1, "Puma": 1, "Reebok": 1, "Under Armour": 1}},
+                {id: 10, brands: {"Adidas": 0, "Jordan": 0, "New Balance": 1, "Nike": 1, "Puma": 1, "Reebok": 0, "Under Armour": 0}}
+            ];
+
+            const checkboxes = document.querySelectorAll('.brand-filter');
+            const resultBox = document.getElementById('resultBox');
+            const selectedBrandsSpan = document.getElementById('selectedBrands');
+            const frequencySpan = document.getElementById('frequency');
+            const transactionsListSpan = document.getElementById('transactionsList');
+            const clearButton = document.getElementById('clearFilters');
+            const tableRows = document.querySelectorAll('#interactiveTable tbody tr:not(.total-row)');
+
+            function updateFilter() {
+                const selectedBrands = Array.from(checkboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+
+                // Resetear resaltado
+                tableRows.forEach(row => row.classList.remove('highlight-row'));
+
+                if (selectedBrands.length === 0) {
+                    resultBox.classList.remove('show');
+                    return;
+                }
+
+                // Filtrar transacciones que contienen TODAS las marcas seleccionadas
+                const matchingTransactions = transactionData.filter(transaction => {
+                    return selectedBrands.every(brand => transaction.brands[brand] === 1);
+                });
+
+                const frequency = matchingTransactions.length;
+                const transactionIds = matchingTransactions.map(t => t.id);
+
+                // Mostrar resultado
+                selectedBrandsSpan.textContent = selectedBrands.join(', ');
+                frequencySpan.textContent = frequency;
+                transactionsListSpan.textContent = transactionIds.length > 0 ? transactionIds.join(', ') : 'Ninguna';
+                resultBox.classList.add('show');
+
+                // Resaltar filas que coinciden
+                tableRows.forEach(row => {
+                    const transactionId = parseInt(row.getAttribute('data-transaction'));
+                    if (transactionIds.includes(transactionId)) {
+                        row.classList.add('highlight-row');
+                    }
+                });
+            }
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateFilter);
+            });
+
+            clearButton.addEventListener('click', () => {
+                checkboxes.forEach(cb => cb.checked = false);
+                updateFilter();
+            });
+        </script>
+
+        <div class="summary-box">
+            <h4>Conclusiones:</h4>
+            <ul>
+                <li>La regla más fuerte es <strong>{Reebok} ⇒ {Under Armour}</strong> con soporte de 6 transacciones.</li>
+                <li>Los productos <strong>Under Armour</strong> y <strong>Reebok</strong> aparecen juntos en todas las transacciones donde está Reebok.</li>
+                <li>Los productos <strong>Jordan</strong> y <strong>Adidas</strong> también muestran alta asociación (100% de confianza).</li>
+                <li>Las combinaciones que incluyen <strong>{Reebok, Under Armour}</strong> tienden a generar reglas muy fuertes.</li>
+            </ul>
+        </div>
+        </div>
+    </div>
+</body>
+</html>
