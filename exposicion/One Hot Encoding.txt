@@ -1,0 +1,70 @@
+One Hot Encoding
+¿Qué es One-Hot Encoding?
+Es una forma de convertir una variable categórica en varias columnas binarias.
+Cada columna representa una categoría y solo marca 1 si pertenece y 0 si no.
+Ejemplo rápido:
+Color = “Rojo”, “Azul”, “Verde”
+?
+Columnas = Color_Rojo, Color_Azul, Color_Verde
+
+¿Cuándo debo usarlo?
+Úsalo cuando:
+* Las categorías no tienen orden (colores, ciudades, productos).
+* El modelo no trabaja bien con categorías como texto (árboles, redes neuronales, SVM, regresiones).
+* Tienes pocas categorías (por ejemplo 2, 5 o 10).
+
+¿Cuándo NO debo usarlo?
+Evítalo cuando:
+* Tienes muchísimas categorías (por ejemplo 200 países, 10,000 productos). Crearías cientos o miles de columnas.
+* La categoría tiene orden natural (bajo–medio–alto), ahí conviene usar ordinal encoding.
+* Vas a usar un modelo sensible a muchas columnas (como regresión logística o k-means): se vuelve lento e ineficiente.
+
+Ventajas
+* Fácil de entender y aplicar.
+* No introduce “orden falso”.
+* Funciona muy bien con la mayoría de modelos modernos.
+* Mantiene toda la información de la categoría original.
+
+Desventajas
+* Aumenta mucho el número de columnas si hay muchas categorías.
+* Puede hacer más lento el entrenamiento.
+* Consume más memoria.
+* La matriz resultante es muy dispersa (muchos ceros).
+
+Técnicas similares 
+Label Encoding: 
+Convierte categorías en un número entero, es útil cuando el modelo no interpreta los números con orden. 
+Ordinal Encoding: 
+      Igual que Label Encoding, pero cuando las categorías tienen un orden. 
+Binary Encoding: 
+Convierte cada categoría a un código binario.
+Es como un “one-hot comprimido”. Si tienes muchas categorías (por ejemplo 200 ciudades), one-hot generaría 200 columnas, pero binary encoding genera muy pocas (8 columnas aprox).
+Target Encoding: Reemplaza cada categoría por el promedio de la variable objetivo.
+Ejemplo: si queremos predecir compra (1/0) y en el color “Rojo” 70% compra, entonces:
+Rojo ? 0.70
+Útil cuando: el dataset es grande y las categorías tienen relación con el objetivo.
+
+Ejercicio completo de One-Hot Encoding
+Tenemos un dataset de clientes que compraron un producto.
+Incluye una variable categórica (“Método de pago”) y una numérica (“Monto”).
+IDMétodoPagoMonto1Efectivo1202Tarjeta3103Transferencia4504Efectivo805Tarjeta1506Transferencia5207Efectivo200Tarea 1: Aplicar One-Hot Encoding a la columna “MétodoPago”
+Debes generar tres columnas nuevas:
+* MétodoPago_Efectivo
+* MétodoPago_Tarjeta
+* MétodoPago_Transferencia
+Llena la tabla completa.
+
+Tarea 2: Integrar el one-hot encoding al dataset final
+Tu resultado debe verse así (los compañeros lo completan):
+IDMontoEfectivoTarjetaTransferencia1120???2310???3450???480???5150???6520???7200???(tienen que llenar los 1 y 0)
+
+Tarea 3: Preguntas conceptuales
+1. ¿Por qué necesitamos convertir “MétodoPago” en números?
+(Respuesta esperada: porque los modelos no entienden texto.)
+2. ¿Cuántas nuevas columnas se generaron y por qué?
+(Una por categoría.)
+3. Si el dataset tuviera 100 métodos de pago distintos, ¿seguiría siendo buena idea? ¿por qué?
+(Esperado: no, demasiadas columnas ? lento y poco eficiente.)
+4. ¿Este encoding sirve cuando los métodos de pago tuvieran un “orden”?
+(No, porque one-hot no representa orden.)
+
