@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>One‑Hot Encoding — Minería de Datos</title>
+		<style>
+			:root { --bg:#F2F2F7; --panel:#FFFFFF; --card:#FFFFFF; --text:#1C1C1E; --muted:#6C6C70; --accent:#007AFF; --border:#E5E5EA; }
+			* { box-sizing: border-box; }
+			html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
+			a { color: var(--accent); }
+			.container { max-width: 980px; margin: 0 auto; padding: 32px 20px 72px; }
+			header { margin-bottom: 24px; }
+			h1 { font-size: 2.2rem; margin: 0 0 6px; }
+			h2 { font-size: 1.4rem; margin: 28px 0 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+			h3 { font-size: 1.1rem; margin: 18px 0 8px; color: var(--accent); }
+			p { color: var(--text); line-height: 1.6; }
+			ul, ol { padding-left: 22px; }
+			li { margin: 6px 0; }
+			.card { background: linear-gradient(180deg, var(--panel), var(--card)); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px; margin: 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); }
+			.muted { color: var(--muted); }
+			.kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; background: #eef2ff; color: #111827; border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+			.example { background: #F2F2F7; border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; margin: 10px 0; color: var(--text); }
+			table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+			thead th { background: #f1f5f9; color: #0f172a; font-weight: 600; }
+			th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+			tbody tr:nth-child(odd) { background: #ffffff; }
+			tbody tr:nth-child(even) { background: #f9fafb; }
+			.note { font-size: 0.95rem; color: var(--muted); }
+
+			/* Candado de respuestas */
+			.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+			.input { border: 1px solid var(--border); background: #ffffff; color: #0f172a; border-radius: 8px; padding: 8px 10px; }
+			.btn { border: 1px solid var(--border); background: var(--accent); color: #ffffff; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+			.btn:disabled { opacity: .6; cursor: not-allowed; }
+			.hint { color: var(--muted); font-style: italic; }
+			.answer { display: none; padding: 0 6px; border-radius: 6px; background: #e2e8f0; color: #0f172a; }
+			body.revealed .answer { display: inline; }
+			body.revealed .hint { display: none; }
+			.error { color: #b91c1c; }
+
+			/* Animaciones (presentación) */
+			@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+			@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+			@keyframes popIn { from { opacity: 0; transform: scale(.98); } to { opacity:1; transform: scale(1); } }
+			.reveal { opacity: 0; transform: translateY(10px); }
+			.reveal.show { opacity: 1; transform: none; animation: fadeUp 500ms ease-out both; }
+			.row-animate { opacity: 0; transform: translateY(6px); animation: fadeUp 400ms ease-out both; }
+
+			/* Modo presentación */
+			.toolbar { display:flex; align-items:center; justify-content: space-between; gap: 12px; }
+			#togglePresentation { background: #11182710; color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+			body.presentation .container { max-width: 1000px; }
+			body.presentation main { position: relative; min-height: 70vh; }
+			body.presentation .card { display: none; }
+			body.presentation .card.slide-active { display: block; animation: popIn 420ms ease-out both; }
+			#navControls { display: none; position: sticky; bottom: 0; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+			body.presentation #navControls { display: flex; align-items:center; justify-content: center; gap: 10px; }
+			.nav-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+			.nav-btn.secondary { background: #11182710; color: var(--text); border: 1px solid var(--border); }
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<div class="toolbar">
+					<div>
+						<h1>One‑Hot Encoding</h1>
+						<p class="muted">Conversión de variables categóricas a columnas binarias independientes.</p>
+					</div>
+					<div>
+						<button id="togglePresentation" aria-pressed="false" title="Alternar modo presentación">Modo presentación</button>
+					</div>
+				</div>
+			</header>
+
+			<main>
+				<section id="acceso" class="card reveal">
+					<h2>Respuestas (acceso)</h2>
+					<div class="controls">
+						<label for="pwd" class="muted">Contraseña:</label>
+						<input id="pwd" type="password" class="input" placeholder="Ingresa la contraseña" aria-label="Contraseña para ver respuestas" />
+						<button id="unlock" class="btn">Mostrar respuestas</button>
+						<span id="msg" class="muted" role="status"></span>
+					</div>
+				</section>
+				<section id="que-es" class="card reveal">
+					<h2>¿Qué es One‑Hot Encoding?</h2>
+					<p>
+						Es una forma de convertir una variable categórica en varias columnas binarias. Cada columna representa una categoría y solo marca 1 si pertenece y 0 si no.
+					</p>
+					<div class="example">
+						<div><span class="kbd">Color</span> = “Rojo”, “Azul”, “Verde”</div>
+						<div>Columnas → <span class="kbd">Color_Rojo</span>, <span class="kbd">Color_Azul</span>, <span class="kbd">Color_Verde</span></div>
+					</div>
+				</section>
+
+				<section id="cuando-usarlo" class="card reveal">
+					<h2>¿Cuándo debo usarlo?</h2>
+					<ul>
+						<li>Las categorías no tienen orden (colores, ciudades, productos).</li>
+						<li>El modelo no trabaja bien con categorías como texto (árboles, redes neuronales, SVM, regresiones).</li>
+						<li>Tienes pocas categorías (por ejemplo 2, 5 o 10).</li>
+					</ul>
+				</section>
+
+				<section id="cuando-no" class="card reveal">
+					<h2>¿Cuándo NO debo usarlo?</h2>
+					<ul>
+						<li>Tienes muchísimas categorías (por ejemplo 200 países, 10,000 productos). Crearías cientos o miles de columnas.</li>
+						<li>La categoría tiene orden natural (bajo–medio–alto), ahí conviene usar ordinal encoding.</li>
+						<li>Vas a usar un modelo sensible a muchas columnas (como regresión logística o k-means): se vuelve lento e ineficiente.</li>
+					</ul>
+				</section>
+
+				<section id="ventajas" class="card reveal">
+					<h2>Ventajas</h2>
+					<ul>
+						<li>Fácil de entender y aplicar.</li>
+						<li>No introduce “orden falso”.</li>
+						<li>Funciona muy bien con la mayoría de modelos modernos.</li>
+						<li>Mantiene toda la información de la categoría original.</li>
+					</ul>
+				</section>
+
+				<section id="desventajas" class="card reveal">
+					<h2>Desventajas</h2>
+					<ul>
+						<li>Aumenta mucho el número de columnas si hay muchas categorías.</li>
+						<li>Puede hacer más lento el entrenamiento.</li>
+						<li>Consume más memoria.</li>
+						<li>La matriz resultante es muy dispersa (muchos ceros).</li>
+					</ul>
+				</section>
+
+				<section id="tecnicas-similares" class="card reveal">
+					<h2>Técnicas similares</h2>
+					<h3>Label Encoding</h3>
+					<p>Convierte categorías en un número entero, es útil cuando el modelo no interpreta los números con orden.</p>
+					<h3>Ordinal Encoding</h3>
+					<p>Igual que Label Encoding, pero cuando las categorías tienen un orden.</p>
+					<h3>Binary Encoding</h3>
+					<p>
+						Convierte cada categoría a un código binario. Es como un “one‑hot comprimido”. Si tienes muchas categorías (por ejemplo 200 ciudades), one‑hot generaría 200 columnas, pero binary encoding genera muy pocas (≈ 8 columnas).
+					</p>
+					<h3>Target Encoding</h3>
+					<p>
+						Reemplaza cada categoría por el promedio de la variable objetivo. Ejemplo: si queremos predecir compra (1/0) y en el color “Rojo” 70% compra, entonces: <span class="kbd">Rojo → 0.70</span>.
+						Útil cuando el dataset es grande y las categorías tienen relación con el objetivo.
+					</p>
+				</section>
+
+				<section id="ejercicio" class="card reveal">
+					<h2>Ejercicio completo de One‑Hot Encoding</h2>
+
+					<p>Tenemos un dataset de clientes que compraron un producto. Incluye una variable categórica (“Método de pago”) y una numérica (“Monto”).</p>
+
+					<h3>Dataset original</h3>
+					  <table aria-label="Dataset original" class="table-animate">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>MétodoPago</th>
+								<th>Monto</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr><td>1</td><td>Efectivo</td><td>120</td></tr>
+							<tr><td>2</td><td>Tarjeta</td><td>310</td></tr>
+							<tr><td>3</td><td>Transferencia</td><td>450</td></tr>
+							<tr><td>4</td><td>Efectivo</td><td>80</td></tr>
+							<tr><td>5</td><td>Tarjeta</td><td>150</td></tr>
+							<tr><td>6</td><td>Transferencia</td><td>520</td></tr>
+							<tr><td>7</td><td>Efectivo</td><td>200</td></tr>
+						</tbody>
+					</table>
+
+					<h3>Tarea 1: Aplicar One‑Hot Encoding a “MétodoPago”</h3>
+					<p>Debes generar tres columnas nuevas: <span class="kbd">MétodoPago_Efectivo</span>, <span class="kbd">MétodoPago_Tarjeta</span>, <span class="kbd">MétodoPago_Transferencia</span>. Llena la tabla con 1/0.</p>
+					  <table aria-label="Tarea 1 - One-Hot sobre MétodoPago" class="table-animate">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>MétodoPago</th>
+								<th>Monto</th>
+								<th>MétodoPago_Efectivo</th>
+								<th>MétodoPago_Tarjeta</th>
+								<th>MétodoPago_Transferencia</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr><td>1</td><td>Efectivo</td><td>120</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>2</td><td>Tarjeta</td><td>310</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>3</td><td>Transferencia</td><td>450</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>4</td><td>Efectivo</td><td>80</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>5</td><td>Tarjeta</td><td>150</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>6</td><td>Transferencia</td><td>520</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>7</td><td>Efectivo</td><td>200</td><td>?</td><td>?</td><td>?</td></tr>
+						</tbody>
+					</table>
+
+					<h3>Tarea 2: Integrar el one‑hot encoding al dataset final</h3>
+					<p>Tu resultado debe verse así (los compañeros lo completan):</p>
+					  <table aria-label="Tarea 2 - Dataset final con columnas binarias" class="table-animate">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Monto</th>
+								<th>Efectivo</th>
+								<th>Tarjeta</th>
+								<th>Transferencia</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr><td>1</td><td>120</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>2</td><td>310</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>3</td><td>450</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>4</td><td>80</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>5</td><td>150</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>6</td><td>520</td><td>?</td><td>?</td><td>?</td></tr>
+							<tr><td>7</td><td>200</td><td>?</td><td>?</td><td>?</td></tr>
+						</tbody>
+					</table>
+
+					<h3>Tarea 3: Preguntas conceptuales</h3>
+					<ol>
+						<li>
+							¿Por qué necesitamos convertir “MétodoPago” en números?
+							<span class="hint">(respuesta oculta)</span>
+							<span class="answer">Respuesta: Porque los modelos no entienden texto.</span>
+						</li>
+						<li>
+							¿Cuántas nuevas columnas se generaron y por qué?
+							<span class="hint">(respuesta oculta)</span>
+							<span class="answer">Respuesta: Una por categoría.</span>
+						</li>
+						<li>
+							Si el dataset tuviera 100 métodos de pago distintos, ¿seguiría siendo buena idea? ¿por qué?
+							<span class="hint">(respuesta oculta)</span>
+							<span class="answer">Respuesta: No; generaría demasiadas columnas, sería lento e ineficiente.</span>
+						</li>
+						<li>
+							¿Este encoding sirve cuando los métodos de pago tuvieran un “orden”?
+							<span class="hint">(respuesta oculta)</span>
+							<span class="answer">Respuesta: No; one‑hot no representa orden.</span>
+						</li>
+					</ol>
+				</section>
+
+				<div id="navControls" aria-label="Controles de presentación">
+					<button class="nav-btn secondary" id="prevSlide" title="Anterior (←)">Anterior</button>
+					<button class="nav-btn" id="nextSlide" title="Siguiente (→)">Siguiente</button>
+				</div>
+			</main>
+			<script>
+				(function() {
+					// Candado de respuestas
+					const btn = document.getElementById('unlock');
+					const input = document.getElementById('pwd');
+					const msg = document.getElementById('msg');
+					function tryUnlock() {
+						const val = (input.value || '').trim();
+						if (val === '1234') {
+							document.body.classList.add('revealed');
+							msg.textContent = 'Respuestas visibles';
+							msg.classList.remove('error');
+							fillTask1();
+							fillTask2();
+						} else {
+							msg.textContent = 'Contraseña incorrecta';
+							msg.classList.add('error');
+						}
+					}
+					btn.addEventListener('click', tryUnlock);
+					input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { tryUnlock(); } });
+
+					// Aparición por sección al hacer scroll
+					const sections = Array.from(document.querySelectorAll('main > section.card'));
+					const io = new IntersectionObserver((entries) => {
+						entries.forEach(entry => {
+							if (entry.isIntersecting) {
+								entry.target.classList.add('show');
+								animateTables(entry.target);
+							}
+						});
+					}, { threshold: 0.12 });
+					sections.forEach(sec => io.observe(sec));
+
+					function animateTables(scope) {
+						scope.querySelectorAll('table.table-animate tbody tr').forEach((tr, i) => {
+							tr.style.animationDelay = (i * 60) + 'ms';
+							tr.classList.add('row-animate');
+						});
+					}
+
+					// Completar automáticamente la Tarea 1 (reemplazar '?' por 1/0)
+					function fillTask1() {
+						const table = document.querySelector('table[aria-label="Tarea 1 - One-Hot sobre MétodoPago"]');
+						if (!table) return;
+						const rows = Array.from(table.querySelectorAll('tbody tr'));
+						rows.forEach((tr) => {
+							const tds = tr.querySelectorAll('td');
+							if (tds.length < 6) return;
+							const metodo = (tds[1].textContent || '').trim().toLowerCase();
+							const isEf = metodo === 'efectivo';
+							const isTa = metodo === 'tarjeta';
+							const isTr = metodo === 'transferencia';
+							tds[3].textContent = isEf ? '1' : '0';
+							tds[4].textContent = isTa ? '1' : '0';
+							tds[5].textContent = isTr ? '1' : '0';
+						});
+					}
+
+					// Mapa ID -> MétodoPago desde el dataset original
+					function getMetodoMapFromOriginal() {
+						const map = {};
+						const table = document.querySelector('table[aria-label="Dataset original"]');
+						if (!table) return null;
+						table.querySelectorAll('tbody tr').forEach(tr => {
+							const tds = tr.querySelectorAll('td');
+							if (tds.length < 3) return;
+							const id = (tds[0].textContent || '').trim();
+							const metodo = (tds[1].textContent || '').trim().toLowerCase();
+							if (id) map[id] = metodo;
+						});
+						return map;
+					}
+
+					// Mapa ID -> MétodoPago desde Tarea 1 (si ya estuviera rellena)
+					function getMetodoMapFromTask1() {
+						const map = {};
+						const table = document.querySelector('table[aria-label="Tarea 1 - One-Hot sobre MétodoPago"]');
+						if (!table) return null;
+						table.querySelectorAll('tbody tr').forEach(tr => {
+							const tds = tr.querySelectorAll('td');
+							if (tds.length < 6) return;
+							const id = (tds[0].textContent || '').trim();
+							const e = (tds[3].textContent || '').trim();
+							const t = (tds[4].textContent || '').trim();
+							const r = (tds[5].textContent || '').trim();
+							if (e === '1') map[id] = 'efectivo';
+							else if (t === '1') map[id] = 'tarjeta';
+							else if (r === '1') map[id] = 'transferencia';
+						});
+						return map;
+					}
+
+					// Completar automáticamente la Tarea 2 usando el dataset original (o Tarea 1)
+					function fillTask2() {
+						const table = document.querySelector('table[aria-label="Tarea 2 - Dataset final con columnas binarias"]');
+						if (!table) return;
+						const mapOriginal = getMetodoMapFromOriginal();
+						const mapT1 = getMetodoMapFromTask1();
+						const getMetodo = (id) => (mapOriginal && mapOriginal[id]) || (mapT1 && mapT1[id]) || null;
+
+						table.querySelectorAll('tbody tr').forEach(tr => {
+							const tds = tr.querySelectorAll('td');
+							if (tds.length < 5) return;
+							const id = (tds[0].textContent || '').trim();
+							const metodo = (getMetodo(id) || '').toLowerCase();
+							const isEf = metodo === 'efectivo';
+							const isTa = metodo === 'tarjeta';
+							const isTr = metodo === 'transferencia';
+							if (!metodo) return; // si no hay mapeo, se deja con '?'
+							tds[2].textContent = isEf ? '1' : '0';
+							tds[3].textContent = isTa ? '1' : '0';
+							tds[4].textContent = isTr ? '1' : '0';
+						});
+					}
+
+					// Modo presentación
+					const toggle = document.getElementById('togglePresentation');
+					const prev = document.getElementById('prevSlide');
+					const next = document.getElementById('nextSlide');
+					let idx = 0;
+
+					function setActive(i) {
+						idx = Math.max(0, Math.min(i, sections.length - 1));
+						sections.forEach((s, k) => {
+							s.classList.toggle('slide-active', k === idx);
+							if (k === idx) animateTables(s);
+						});
+						prev.disabled = idx === 0;
+						next.disabled = idx === sections.length - 1;
+					}
+
+					function enterPresentation() {
+						document.body.classList.add('presentation');
+						toggle.setAttribute('aria-pressed', 'true');
+						setActive(idx);
+					}
+
+					function exitPresentation() {
+						document.body.classList.remove('presentation');
+						toggle.setAttribute('aria-pressed', 'false');
+						sections.forEach(s => s.classList.remove('slide-active'));
+					}
+
+					toggle.addEventListener('click', () => {
+						if (document.body.classList.contains('presentation')) {
+							exitPresentation();
+						} else {
+							enterPresentation();
+						}
+					});
+
+					prev.addEventListener('click', () => setActive(idx - 1));
+					next.addEventListener('click', () => setActive(idx + 1));
+
+					window.addEventListener('keydown', (e) => {
+						if (!document.body.classList.contains('presentation')) return;
+						if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); setActive(idx + 1); }
+						if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); setActive(idx - 1); }
+						if (e.key === 'Escape') { exitPresentation(); }
+					});
+				})();
+			</script>
+		</div>
+	</body>
+	</html>
